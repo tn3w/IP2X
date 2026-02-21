@@ -23,12 +23,6 @@ Fast IP geolocation and proxy detection with compressed binary databases
   </a>
 </p>
 
-<p align="center">
-  <a href="#quick-start">🚀 Quick Start</a> •
-  <a href="#features">✨ Features</a> •
-  <a href="#usage">💡 Usage</a>
-</p>
-
 </div>
 
 ## 📥 Download & Extract
