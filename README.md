@@ -63,6 +63,7 @@ CSV Data ──────────> Rust Builder ────────�
 **IP2X** converts IP2Location CSV databases into highly compressed binary formats for fast lookups. It combines IP2Location data with MaxMind GeoLite2 for comprehensive IP intelligence.
 
 The project includes:
+
 - **Rust builder** — Processes CSV files into optimized binary databases
 - **Python reader** — Fast lookups with minimal dependencies
 
@@ -105,6 +106,7 @@ print(json.dumps(result, indent=2))
 ```
 
 **Output:**
+
 ```
 Databases loaded in 24.033s
 {
@@ -117,22 +119,6 @@ Databases loaded in 24.033s
 }
 Lookup completed in 0.139ms
 ```
-
-## 📦 Data Sources
-
-The builder requires these CSV files in the `data/` directory:
-
-| File | Description | Source |
-|------|-------------|--------|
-| `DB5LITECSV.CSV` | IPv4 geolocation | IP2Location |
-| `DB5LITECSVIPV6.CSV` | IPv6 geolocation | IP2Location |
-| `DBASNLITE.CSV` | IPv4 ASN data | IP2Location |
-| `DBASNLITEIPV6.CSV` | IPv6 ASN data | IP2Location |
-| `PX12LITECSV.CSV` | IPv4 proxy data | IP2Location |
-| `PX12LITECSVIPV6.CSV` | IPv6 proxy data | IP2Location |
-| `GeoLite2-City.mmdb` | Additional geo data | MaxMind |
-
-Download IP2Location databases from [ip2location.com](https://www.ip2location.com/) (requires free account).
 
 ## 💡 Usage
 
@@ -176,23 +162,42 @@ results = [db.lookup_all(ip) for ip in ips]
 ## 🛠️ Requirements
 
 **Builder:**
+
 - Rust 1.70+
 - IP2Location CSV files
 - GeoLite2-City.mmdb
 
 **Reader:**
+
 - Python 3.7+
 - No external dependencies
 
 ## 🔄 Automated Updates
 
 The project includes a GitHub Actions workflow that:
+
 - Downloads latest IP2Location databases daily
 - Builds binary files
 - Creates releases with updated databases
 
 See [`.github/workflows/update-databases.yml`](.github/workflows/update-databases.yml) for details.
 
+## 📝 Attribution
+
+IP2X uses the IP2Location LITE database for <a href="https://lite.ip2location.com">IP geolocation</a>.
+
 ## 📄 License
 
-MIT
+Copyright [yyyy] [name of copyright owner]
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

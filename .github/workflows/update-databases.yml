@@ -39,14 +39,14 @@ jobs:
         run: |
           for DB in DB5LITECSV DB5LITECSVIPV6 DBASNLITE DBASNLITEIPV6 PX12LITECSV PX12LITECSVIPV6; do
             echo "Downloading ${DB}..."
-            wget -O temp.zip "https://www.ip2location.com/download/?file=${DB}&token=${IP2LOCATION_TOKEN}"
+            curl -L -o temp.zip "https://www.ip2location.com/download/?file=${DB}&token=${IP2LOCATION_TOKEN}"
             unzip -j temp.zip "*.CSV" -d data/
             rm temp.zip
           done
 
       - name: Download GeoLite2 database
         run: |
-          wget -O data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
+          curl -L -o data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
 
       - name: Build binary databases
         run: cargo run --release
@@ -74,10 +74,10 @@ jobs:
 
           **Download:**
           \`\`\`bash
-          wget https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/geo.bin
-          wget https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/proxy_types.bin
-          wget https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/asn.bin
-          wget https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/isp.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/geo.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/proxy_types.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/asn.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG_NAME}/isp.bin
           \`\`\`"
 
       - name: Cleanup old releases

@@ -46,9 +46,9 @@ fn write_signed_varint(out: &mut BufWriter<File>, value: i64) {
 fn build_geo_bin(data_dir: &str) {
     let mut ranges = Vec::new();
 
-    process_geo_csv(&format!("{}/DB5LITECSV.CSV", data_dir), true, &mut ranges);
+    process_geo_csv(&format!("{}/IP2LOCATION-LITE-DB5.CSV", data_dir), true, &mut ranges);
     process_geo_csv(
-        &format!("{}/DB5LITECSVIPV6.CSV", data_dir),
+        &format!("{}/IP2LOCATION-LITE-DB5.IPV6.CSV", data_dir),
         false,
         &mut ranges,
     );
@@ -134,9 +134,9 @@ fn process_geo_csv(path: &str, is_v4: bool, ranges: &mut Vec<(u128, u128, f32, f
 fn build_proxy_types_bin(data_dir: &str) {
     let mut types: HashMap<String, Vec<(u128, u128)>> = HashMap::new();
 
-    process_proxy_csv(&format!("{}/PX12LITECSV.CSV", data_dir), true, &mut types);
+    process_proxy_csv(&format!("{}/IP2PROXY-LITE-PX12.CSV", data_dir), true, &mut types);
     process_proxy_csv(
-        &format!("{}/PX12LITECSVIPV6.CSV", data_dir),
+        &format!("{}/IP2PROXY-LITE-PX12.IPV6.CSV", data_dir),
         false,
         &mut types,
     );
@@ -198,14 +198,14 @@ fn build_asn_bin(data_dir: &str) {
     let mut data = Vec::new();
 
     process_asn_csv(
-        &format!("{}/DBASNLITE.CSV", data_dir),
+        &format!("{}/IP2LOCATION-LITE-ASN.CSV", data_dir),
         true,
         &mut data,
         &mut strings,
         &mut string_map,
     );
     process_asn_csv(
-        &format!("{}/DBASNLITEIPV6.CSV", data_dir),
+        &format!("{}/IP2LOCATION-LITE-ASN.IPV6.CSV", data_dir),
         false,
         &mut data,
         &mut strings,
@@ -307,14 +307,14 @@ fn build_isp_bin(data_dir: &str) {
     let mut data = Vec::new();
 
     process_isp_csv(
-        &format!("{}/PX12LITECSV.CSV", data_dir),
+        &format!("{}/IP2PROXY-LITE-PX12.CSV", data_dir),
         true,
         &mut data,
         &mut strings,
         &mut string_map,
     );
     process_isp_csv(
-        &format!("{}/PX12LITECSVIPV6.CSV", data_dir),
+        &format!("{}/IP2PROXY-LITE-PX12.IPV6.CSV", data_dir),
         false,
         &mut data,
         &mut strings,
