@@ -54,6 +54,8 @@ jobs:
 
       - name: Verify binary databases
         run: |
+          cargo run --release
+
           missing=0
           for f in geo.bin proxy_types.bin asn.bin isp.bin; do
             if [ ! -f "$f" ]; then
@@ -65,7 +67,6 @@ jobs:
             echo "One or more required binary database files are missing. Aborting release creation."
             exit 1
           fi
-          cargo run --release
 
       - name: Create Release
         env:
