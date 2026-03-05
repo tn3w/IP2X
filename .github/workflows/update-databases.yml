@@ -46,6 +46,7 @@ jobs:
           done
 
       - name: Download GeoLite2 database
+        run: |
           curl -fL -o data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb" || { echo "Error: Failed to download GeoLite2-City.mmdb"; exit 1; }
           if [ ! -s data/GeoLite2-City.mmdb ]; then echo "Error: GeoLite2-City.mmdb file is missing or empty after download"; exit 1; fi
           curl -L -o data/GeoLite2-City.mmdb "https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb"
@@ -64,7 +65,7 @@ jobs:
             echo "One or more required binary database files are missing. Aborting release creation."
             exit 1
           fi
-        run: cargo run --release
+          cargo run --release
 
       - name: Create Release
         env:
