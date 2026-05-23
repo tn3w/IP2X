@@ -221,8 +221,9 @@ target
 # Contains mutation testing data
 **/mutants.out*/
 
-# Data
-data/
+# Database files
+ip2loc/*.BIN
+ip2loc/*.mmdb
 
-# Bin files
-*.bin
+# Generated files
+geo.bin

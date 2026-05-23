@@ -1,0 +1,69 @@
+name: Build
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches: [main, master]
+    paths:
+      - 'ip2loc/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ip2loc/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('ip2loc/Cargo.toml') }}
+
+      - run: cargo build --release
+        working-directory: ip2loc
+
+      - name: Download source databases
+        env:
+          IP2L_TOKEN: ${{ secrets.IP2LOCATION_TOKEN }}
+        run: |
+          curl -fL -o ip2l.zip "https://www.ip2location.com/download/?token=${IP2L_TOKEN}&file=DB11LITEBINIPV6"
+          unzip -j ip2l.zip "IP2LOCATION-LITE-DB11.IPV6.BIN" && rm ip2l.zip
+          curl -fL -o GeoLite2-City.mmdb https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb
+
+      - name: Build geo.bin
+        run: |
+          ./ip2loc/target/release/ip2loc build
+          ./ip2loc/target/release/ip2loc lookup 8.8.8.8
+          ./ip2loc/target/release/ip2loc lookup 2606:4700::1
+
+      - name: Create Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v$(date -u +%Y%m%d-%H%M%S)"
+          SIZE=$(du -h geo.bin | cut -f1)
+          gh release create "$TAG" geo.bin \
+            --title "IP2X $(date -u +'%Y-%m-%d %H:%M UTC')" \
+            --notes "Automated IP2X database build.
+
+          - \`geo.bin\` ($SIZE) IP → (lat, lon) at 0.001° precision
+
+          \`\`\`bash
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geo.bin
+          \`\`\`"
+
+      - name: Prune old releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release list --limit 100 --json tagName --jq '.[].tagName' | tail -n +6 \
+            | xargs -rI{} gh release delete {} --yes --cleanup-tag
