@@ -3,7 +3,6 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/tn3w/IP2X/build.yml?label=build)](https://github.com/tn3w/IP2X/actions)
 [![Release](https://img.shields.io/github/v/release/tn3w/IP2X?label=release)](https://github.com/tn3w/IP2X/releases/latest)
 [![Updated](https://img.shields.io/github/release-date/tn3w/IP2X?label=updated)](https://github.com/tn3w/IP2X/releases/latest)
-[![Crates](https://img.shields.io/badge/crates-2-blue)](#artifacts)
 [![Artifacts](https://img.shields.io/badge/artifacts-9-blue)](#artifacts)
 [![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2-informational)](#attribution)
 [![License](https://img.shields.io/badge/license-Apache_2.0-lightgrey)](LICENSE)
