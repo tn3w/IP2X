@@ -228,4 +228,6 @@ target
 # Generated files
 *.bin
 *.tsv
+*.netset
+*.buckets
 out/
