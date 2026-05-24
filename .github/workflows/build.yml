@@ -63,14 +63,22 @@ jobs:
             --px12 IP2PROXY-LITE-PX12.BIN --out proxyx-out
           ls -lh proxyx-out
 
+      - name: Build proxy.bin
+        run: |
+          ./proxyx/target/release/proxyx build-db \
+            --px12 IP2PROXY-LITE-PX12.BIN --out proxy.bin
+          ./proxyx/target/release/proxyx lookup --db proxy.bin 1.0.19.98
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v$(date -u +%Y%m%d-%H%M%S)"
           GEO_SIZE=$(du -h geo.bin | cut -f1)
+          PROXY_SIZE=$(du -h proxy.bin | cut -f1)
           gh release create "$TAG" \
             geo.bin \
+            proxy.bin \
             proxyx-out/proxy_pub.netset \
             proxyx-out/usage.buckets \
             proxyx-out/threat.buckets \
@@ -85,6 +93,9 @@ jobs:
           **geox** ($GEO_SIZE) IP → (lat, lon) at 0.001° precision
           - \`geo.bin\`
 
+          **proxyx** ($PROXY_SIZE) IP → (isp, domain) mmap DB
+          - \`proxy.bin\`
+
           **proxyx** plain-text IP-intelligence views from IP2PROXY LITE PX12
           - \`proxy_pub.netset\`   CIDR netset of public proxies (proxy_type == PUB)
           - \`usage.buckets\`      IP → usage  (bucketed per value)
@@ -97,6 +108,7 @@ jobs:
 
           \`\`\`bash
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geo.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy.bin
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy_pub.netset
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/usage.buckets
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/threat.buckets

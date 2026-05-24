@@ -3,11 +3,12 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/tn3w/IP2X/build.yml?label=build)](https://github.com/tn3w/IP2X/actions)
 [![Release](https://img.shields.io/github/v/release/tn3w/IP2X?label=release)](https://github.com/tn3w/IP2X/releases/latest)
 [![Updated](https://img.shields.io/github/release-date/tn3w/IP2X?label=updated)](https://github.com/tn3w/IP2X/releases/latest)
-[![Artifacts](https://img.shields.io/badge/artifacts-9-blue)](#artifacts)
+[![Artifacts](https://img.shields.io/badge/artifacts-10-blue)](#artifacts)
 [![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2-informational)](#attribution)
 [![License](https://img.shields.io/badge/license-Apache_2.0-lightgrey)](LICENSE)
 
 [![geo.bin](https://img.shields.io/badge/geo.bin-42MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geo.bin)
+[![proxy.bin](https://img.shields.io/badge/proxy.bin-12MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin)
 [![proxy_pub.netset](https://img.shields.io/badge/proxy__pub.netset-31MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset)
 [![usage.buckets](https://img.shields.io/badge/usage.buckets-27MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets)
 [![threat.buckets](https://img.shields.io/badge/threat.buckets-0.5MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets)
@@ -18,11 +19,12 @@
 [![fraud_score.tsv](https://img.shields.io/badge/fraud__score.tsv-37MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv)
 
 Public IP intel from IP2Location LITE, repacked for fast offline use.
-Two crates, two output styles: a 42 MB mmap geo DB and a set of plain-text
-proxy views, each file ≤ 38 MB.
+Two crates, two output styles: mmap binary DBs (`geo.bin`, `proxy.bin`)
+and plain-text proxy views (≤ 38 MB each).
 
 ```bash
 wget https://github.com/tn3w/IP2X/releases/latest/download/geo.bin
+wget https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset
 wget https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets
 wget https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets
@@ -40,6 +42,7 @@ Updated daily via GitHub Actions.
 | file | role | size |
 | ---- | ---- | ---: |
 | `geo.bin`            | mmap DB, IP → (lat, lon) at 0.001° | ~42 MB |
+| `proxy.bin`          | mmap DB, IP → (isp, domain)        | ~12 MB |
 | `proxy_pub.netset`   | CIDR netset, public proxies (proxy_type == PUB) | ~31 MB |
 | `usage.buckets`      | IP → usage  (bucketed per value)    | ~27 MB |
 | `threat.buckets`     | IP → threat (bucketed per value)    | ~0.5 MB |
@@ -108,6 +111,79 @@ python3 geo_lookup.py 8.8.8.8 2001:4860:4860::8888
 ```
 
 `--db PATH` to point at a non-default `geo.bin`.
+
+# proxy.bin
+
+Built by [`proxyx/`](proxyx/) from IP2Location IP2PROXY-LITE-PX12.
+Compact mmap DB, IP → (isp, domain). Magic `PRX2`, little-endian, ~12 MB
+for the full PX12 dataset (3.88M v4 rows + 7.8k v6 rows after
+adjacent-equal merge).
+
+## Layout
+
+36 B header. Strings interned once into a single offset/blob table;
+(isp_idx, dom_idx) pairs interned into a pair table, freq-sorted so hot
+pairs get tiny indices. IPv4 stored as fixed-size blocks of 256 rows
+with per-block variable bit-width deltas and pair-index packing; IPv6
+keyed on the upper 64 bits.
+
+| offset | size | field |
+| -----: | ---- | ----- |
+| 0  | 4   | magic `PRX2` |
+| 4  | u8  | version (2) |
+| 5  | u8  | block_shift (8 → 256 rows) |
+| 6  | u8  | v6_bits |
+| 7  | u8  | reserved |
+| 8  | u32 | pair_count |
+| 12 | u32 | str_count |
+| 16 | u32 | v4_row_count |
+| 20 | u32 | v6_row_count |
+| 24 | u32 | v4_block_count |
+| 28 | u32 | v4_delta_blob_len |
+| 32 | u32 | v4_idx_blob_len |
+
+Then: pairs (`6 B × n_pairs`, u24 isp_idx + u24 dom_idx), str offsets
+(`4 B × (n_strs+1)`), str blob, v4 bases (`4 B × blocks`), per-block
+`dbits` / `ibits` (`1 B × blocks` each), v4 delta byte-offsets and
+idx byte-offsets (`4 B × (blocks+1)` each), v4 delta blob + 8 B pad,
+v4 idx blob + 8 B pad, v6 keys (`8 B × rows`), v6 packed idx + 8 B pad.
+
+Avg per-block widths on full PX12: ~14 delta-bits, ~8 idx-bits.
+
+Lookup v4: bisect `bases4`, bisect deltas in the matched block at that
+block's `dbits`, read packed pair-idx at that block's `ibits`, resolve
+pair → (isp, domain). Lookup v6: bisect upper-64 keys, read packed idx,
+resolve pair. Native lookup ~170 ns v4 / ~80 ns v6; load ~10 µs;
+resident struct 208 B (mmap shared, paged on demand).
+
+## Build
+
+```bash
+cd proxyx
+cargo build --release
+
+./target/release/proxyx build-db \
+    --px12 IP2PROXY-LITE-PX12.BIN \
+    --out  proxy.bin
+
+./target/release/proxyx lookup --db proxy.bin 1.0.19.98
+# isp     I2TS Inc.
+# domain  mediaindex.co.jp
+```
+
+## Python lookup ([`proxy_db_lookup.py`](proxy_db_lookup.py))
+
+mmap + numpy `searchsorted` on bases4 / v6 upper-64 keys; manual
+bit-packed delta + idx decode against per-block widths. No preload,
+near-instant startup.
+
+```bash
+python3 proxy_db_lookup.py 1.0.19.98 2001:dead::1
+# 1.0.19.98     isp=I2TS Inc.            domain=mediaindex.co.jp
+# 2001:dead::1  isp=FDCservers.net LLC   domain=fdcservers.net
+```
+
+`--db PATH` to point at a non-default `proxy.bin`.
 
 # proxyx outputs
 
@@ -215,6 +291,7 @@ flowchart LR
     D2[GeoLite2-City] --> G
     G --> GB[geo.bin]
     D3[IP2Location PX12 LITE] --> P[proxyx/]
+    P --> PB[proxy.bin]
     P --> R[proxy_pub.netset]
     P --> U[usage.buckets]
     P --> T[threat.buckets]
@@ -228,9 +305,9 @@ flowchart LR
 1. Loops over IP2Location LITE downloads (`DB11LITEBINIPV6`,
    `PX12LITEBIN`) using `IP2LOCATION_TOKEN`.
 2. Pulls `GeoLite2-City.mmdb` from a public mirror.
-3. Builds `geo.bin` with `geox`, plus the eight plain-text views with
-   `proxyx`.
-4. Publishes a timestamped release with all nine assets; prunes to the
+3. Builds `geo.bin` with `geox`, plus `proxy.bin` and the eight
+   plain-text views with `proxyx`.
+4. Publishes a timestamped release with all ten assets; prunes to the
    latest 5.
 
 # Attribution

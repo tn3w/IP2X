@@ -1,3 +1,4 @@
+mod db;
 mod ip2l;
 
 use clap::{Parser, Subcommand};
@@ -5,7 +6,7 @@ use ip2l::Bin;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::{create_dir_all, File};
 use std::io::{BufWriter, Write};
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -33,12 +34,35 @@ enum Cmd {
         #[arg(long, default_value = "out")]
         out: PathBuf,
     },
+    BuildDb {
+        #[arg(long, default_value = "IP2PROXY-LITE-PX12.BIN")]
+        px12: PathBuf,
+        #[arg(long, default_value = "proxy.bin")]
+        out: PathBuf,
+    },
+    Lookup {
+        #[arg(long, default_value = "proxy.bin")]
+        db: PathBuf,
+        ip: String,
+    },
 }
 
 fn main() -> std::io::Result<()> {
     match Cli::parse().cmd {
         Cmd::Build { px12, out } => build(&px12, &out),
+        Cmd::BuildDb { px12, out } => db::build(&px12, &out),
+        Cmd::Lookup { db: dbp, ip } => lookup_cmd(&dbp, &ip),
     }
+}
+
+fn lookup_cmd(db_p: &Path, ip_s: &str) -> std::io::Result<()> {
+    let d = db::Db::open(db_p)?;
+    let ip: IpAddr = ip_s.parse().expect("invalid ip");
+    match d.lookup(ip) {
+        Some((isp, dom)) => println!("isp\t{isp}\ndomain\t{dom}"),
+        None => println!("not found"),
+    }
+    Ok(())
 }
 
 fn build(px12: &Path, out: &Path) -> std::io::Result<()> {
