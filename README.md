@@ -96,6 +96,19 @@ cargo build --release
 # 37.386, -122.084
 ```
 
+## Python lookup ([`geo_lookup.py`](geo_lookup.py))
+
+mmap + numpy `searchsorted` on v4 bases / v6 upper-64 keys; manual
+bit-packed idx + i24 decode. No preload, near-instant startup.
+
+```bash
+python3 geo_lookup.py 8.8.8.8 2001:4860:4860::8888
+# 8.8.8.8                  37.386, -122.084
+# 2001:4860:4860::8888     37.386, -122.084
+```
+
+`--db PATH` to point at a non-default `geo.bin`.
+
 # proxyx outputs
 
 Built by [`proxyx/`](proxyx/) from IP2Location IP2PROXY-LITE-PX12.
@@ -174,6 +187,25 @@ cargo build --release
 
 ls -lh out/
 ```
+
+## Python lookup ([`proxy_lookup.py`](proxy_lookup.py))
+
+Parses all 8 outputs once into sorted (start, end, val) arrays; bisects
+per file on query. v4 + v6 in one call. Load ~8 s for the full bundle,
+lookup O(log n) per file thereafter.
+
+```bash
+python3 proxy_lookup.py 1.0.19.98
+# proxy_pub    True
+# isp          I2TS Inc.
+# domain       mediaindex.co.jp
+# last_seen    30
+# fraud_score  80
+# usage        DCH
+# ...
+```
+
+`--dir PATH` to point at a directory other than `.`.
 
 # Pipeline
 
