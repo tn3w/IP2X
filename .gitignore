@@ -222,8 +222,10 @@ target
 **/mutants.out*/
 
 # Database files
-ip2loc/*.BIN
-ip2loc/*.mmdb
+*.BIN
+*.mmdb
 
 # Generated files
-geo.bin
+*.bin
+*.tsv
+out/

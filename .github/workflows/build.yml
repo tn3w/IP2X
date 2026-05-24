@@ -6,7 +6,8 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'ip2loc/**'
+      - 'geox/**'
+      - 'proxyx/**'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -25,40 +26,85 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            ip2loc/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('ip2loc/Cargo.toml') }}
+            geox/target
+            proxyx/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('geox/Cargo.toml', 'proxyx/Cargo.toml') }}
 
       - run: cargo build --release
-        working-directory: ip2loc
+        working-directory: geox
+
+      - run: cargo build --release
+        working-directory: proxyx
 
       - name: Download source databases
         env:
           IP2L_TOKEN: ${{ secrets.IP2LOCATION_TOKEN }}
         run: |
-          curl -fL -o ip2l.zip "https://www.ip2location.com/download/?token=${IP2L_TOKEN}&file=DB11LITEBINIPV6"
-          unzip -j ip2l.zip "IP2LOCATION-LITE-DB11.IPV6.BIN" && rm ip2l.zip
+          for entry in "DB11LITEBINIPV6:IP2LOCATION-LITE-DB11.IPV6.BIN" \
+                       "PX12LITEBIN:IP2PROXY-LITE-PX12.BIN"; do
+            code="${entry%%:*}"
+            file="${entry##*:}"
+            curl -fL -o "$code.zip" \
+              "https://www.ip2location.com/download/?token=${IP2L_TOKEN}&file=$code"
+            unzip -j "$code.zip" "$file"
+            rm "$code.zip"
+          done
           curl -fL -o GeoLite2-City.mmdb https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb
 
       - name: Build geo.bin
         run: |
-          ./ip2loc/target/release/ip2loc build
-          ./ip2loc/target/release/ip2loc lookup 8.8.8.8
-          ./ip2loc/target/release/ip2loc lookup 2606:4700::1
+          ./geox/target/release/geox build
+          ./geox/target/release/geox lookup 8.8.8.8
+          ./geox/target/release/geox lookup 2606:4700::1
+
+      - name: Build proxyx outputs
+        run: |
+          ./proxyx/target/release/proxyx build \
+            --px12 IP2PROXY-LITE-PX12.BIN --out proxyx-out
+          ls -lh proxyx-out
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v$(date -u +%Y%m%d-%H%M%S)"
-          SIZE=$(du -h geo.bin | cut -f1)
-          gh release create "$TAG" geo.bin \
+          GEO_SIZE=$(du -h geo.bin | cut -f1)
+          gh release create "$TAG" \
+            geo.bin \
+            proxyx-out/proxy_pub.netset \
+            proxyx-out/usage.buckets \
+            proxyx-out/threat.buckets \
+            proxyx-out/isp.tsv \
+            proxyx-out/domain.tsv \
+            proxyx-out/last_seen.tsv \
+            proxyx-out/provider.tsv \
+            proxyx-out/fraud_score.tsv \
             --title "IP2X $(date -u +'%Y-%m-%d %H:%M UTC')" \
             --notes "Automated IP2X database build.
 
-          - \`geo.bin\` ($SIZE) IP → (lat, lon) at 0.001° precision
+          **geox** ($GEO_SIZE) IP → (lat, lon) at 0.001° precision
+          - \`geo.bin\`
+
+          **proxyx** plain-text IP-intelligence views from IP2PROXY LITE PX12
+          - \`proxy_pub.netset\`   CIDR netset of public proxies (proxy_type == PUB)
+          - \`usage.buckets\`      IP → usage  (bucketed per value)
+          - \`threat.buckets\`     IP → threat (bucketed per value)
+          - \`isp.tsv\`            IP → ISP            (dict + ranges)
+          - \`domain.tsv\`         IP → domain         (dict + ranges)
+          - \`last_seen.tsv\`      IP → last-seen days (dict + ranges)
+          - \`provider.tsv\`       IP → VPN provider   (dict + ranges)
+          - \`fraud_score.tsv\`    IP → fraud score    (dict + ranges)
 
           \`\`\`bash
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geo.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy_pub.netset
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/usage.buckets
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/threat.buckets
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/isp.tsv
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/domain.tsv
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/last_seen.tsv
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/provider.tsv
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/fraud_score.tsv
           \`\`\`"
 
       - name: Prune old releases

@@ -1,10 +1,10 @@
 [package]
-name = "ip2loc"
+name = "geox"
 version = "0.1.0"
 edition = "2024"
 
 [[bin]]
-name = "ip2loc"
+name = "geox"
 path = "src/main.rs"
 
 [dependencies]
