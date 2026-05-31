@@ -3,12 +3,13 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/tn3w/IP2X/build.yml?label=build)](https://github.com/tn3w/IP2X/actions)
 [![Release](https://img.shields.io/github/v/release/tn3w/IP2X?label=release)](https://github.com/tn3w/IP2X/releases/latest)
 [![Updated](https://img.shields.io/github/release-date/tn3w/IP2X?label=updated)](https://github.com/tn3w/IP2X/releases/latest)
-[![Artifacts](https://img.shields.io/badge/artifacts-10-blue)](#artifacts)
-[![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2-informational)](#attribution)
+[![Artifacts](https://img.shields.io/badge/artifacts-11-blue)](#artifacts)
+[![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2_%2B_RIR-informational)](#attribution)
 [![License](https://img.shields.io/badge/license-Apache_2.0-lightgrey)](LICENSE)
 
 [![geo.bin](https://img.shields.io/badge/geo.bin-42MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geo.bin)
 [![proxy.bin](https://img.shields.io/badge/proxy.bin-12MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin)
+[![geofeed.bin](https://img.shields.io/badge/geofeed.bin-11MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geofeed.bin)
 [![proxy_pub.netset](https://img.shields.io/badge/proxy__pub.netset-31MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset)
 [![usage.buckets](https://img.shields.io/badge/usage.buckets-27MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets)
 [![threat.buckets](https://img.shields.io/badge/threat.buckets-0.5MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets)
@@ -18,13 +19,14 @@
 [![provider.tsv](https://img.shields.io/badge/provider.tsv-0.3MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/provider.tsv)
 [![fraud_score.tsv](https://img.shields.io/badge/fraud__score.tsv-37MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv)
 
-Public IP intel from IP2Location LITE, repacked for fast offline use.
-Two crates, two output styles: mmap binary DBs (`geo.bin`, `proxy.bin`)
-and plain-text proxy views (≤ 38 MB each).
+Public IP intel repacked for fast offline use. Three crates: mmap binary
+DBs (`geo.bin`, `proxy.bin`, `geofeed.bin`) and plain-text proxy views
+(≤ 38 MB each). Sources: IP2Location LITE, MaxMind GeoLite2, RIR geofeeds.
 
 ```bash
 wget https://github.com/tn3w/IP2X/releases/latest/download/geo.bin
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin
+wget https://github.com/tn3w/IP2X/releases/latest/download/geofeed.bin
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset
 wget https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets
 wget https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets
@@ -43,6 +45,7 @@ Updated daily via GitHub Actions.
 | ---- | ---- | ---: |
 | `geo.bin`            | mmap DB, IP → (lat, lon) at 0.001° | ~42 MB |
 | `proxy.bin`          | mmap DB, IP → (isp, domain)        | ~12 MB |
+| `geofeed.bin`        | mmap DB, IP → (country, region, city, postal, feed) | ~11 MB |
 | `proxy_pub.netset`   | CIDR netset, public proxies (proxy_type == PUB) | ~31 MB |
 | `usage.buckets`      | IP → usage  (bucketed per value)    | ~27 MB |
 | `threat.buckets`     | IP → threat (bucketed per value)    | ~0.5 MB |
@@ -185,6 +188,81 @@ python3 proxy_db_lookup.py 1.0.19.98 2001:dead::1
 
 `--db PATH` to point at a non-default `proxy.bin`.
 
+# geofeed.bin
+
+Built by [`geofeedx/`](geofeedx/) from operator-published geolocation.
+The builder downloads the RIR bulk WHOIS dumps (RIPE, APNIC, AFRINIC),
+extracts every `geofeed:` / `remarks: Geofeed` reference, fetches each
+referenced [RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feed
+concurrently, and merges the LACNIC consolidated feed. Self-describing
+little-endian, magic `GFD3`, IPv4 + IPv6.
+
+Feed rows are accepted only when contained in the authority range of the
+RIR object that referenced them. Each row contributes
+`(country, region, city, postal, feed, rir)`; `feed` is the source URL.
+
+## Layout
+
+28 B header. `(country, region, city, postal, feed, rir)` tuples are
+interned into a freq-sorted record table (hot records get small ids), and
+every string is interned once into an offset/blob table. IPv4 and IPv6
+ranges are each flattened into a sorted breakpoint array (`start → record
+id`); adjacent-equal ids are merged. Id and field-index widths are the
+minimum bytes the cardinalities require (typically 2 B each).
+
+| offset | size | field |
+| -----: | ---- | ----- |
+| 0  | 4   | magic `GFD3` |
+| 4  | u8  | version (3) |
+| 5  | u8  | id_width |
+| 6  | u8  | field_count (6) |
+| 7  | u8  | field_width |
+| 8  | u32 | v4_break_count |
+| 12 | u32 | v6_break_count |
+| 16 | u32 | record_count |
+| 20 | u32 | string_count |
+| 24 | u32 | blob_len |
+
+Then: v4 starts (`4 B × v4_breaks`), v4 ids (`id_width × v4_breaks`),
+v6 starts (`16 B × v6_breaks`), v6 ids (`id_width × v6_breaks`),
+records (`field_count × field_width × records`), string offsets
+(`4 B × (strings+1)`), string blob.
+
+Lookup: bisect the matching family's starts, read the packed record id,
+resolve the tuple. Native load ~6 µs (mmap, ~0 resident); ~120 ns/lookup
+over ~1.2 M v4 breakpoints.
+
+## Build
+
+```bash
+cd geofeedx
+cargo build --release
+
+./target/release/geofeedx fetch --out geofeeds_data.csv
+./target/release/geofeedx build --data geofeeds_data.csv --out geofeed.bin
+
+./target/release/geofeedx lookup --db geofeed.bin 213.21.192.5
+# country  LV
+# region   LV-RIX
+# city     Riga
+# ...
+```
+
+`fetch` caches the RIR bulk dumps under `.cache/rir-bulk` and re-downloads
+only what is missing. `geofeeds_data.csv` is the intermediate
+`cidr,country,region,city,postal,feed,rir` join, regenerated on each fetch.
+
+## Python lookup ([`geofeed_lookup.py`](geofeed_lookup.py))
+
+mmap + `bisect` on the v4 / v6 start arrays; variable-width record and
+field decode. No preload, near-instant startup. v4 + v6 in one call.
+
+```bash
+python3 geofeed_lookup.py 213.21.192.5 2001:ad0::1
+```
+
+`--db PATH` to point at a non-default `geofeed.bin`.
+
 # proxyx outputs
 
 Built by [`proxyx/`](proxyx/) from IP2Location IP2PROXY-LITE-PX12.
@@ -296,6 +374,9 @@ flowchart LR
     P --> U[usage.buckets]
     P --> T[threat.buckets]
     P --> TSV[isp / domain / last_seen / provider / fraud_score .tsv]
+    D4[RIR bulk WHOIS] --> F[geofeedx/]
+    D5[RFC 8805 feeds + LACNIC] --> F
+    F --> FB[geofeed.bin]
 ```
 
 # Automated updates
@@ -307,7 +388,9 @@ flowchart LR
 2. Pulls `GeoLite2-City.mmdb` from a public mirror.
 3. Builds `geo.bin` with `geox`, plus `proxy.bin` and the eight
    plain-text views with `proxyx`.
-4. Publishes a timestamped release with all ten assets; prunes to the
+4. Runs `geofeedx fetch` (RIR bulk + RFC 8805 feeds) then `geofeedx
+   build` to produce `geofeed.bin`.
+5. Publishes a timestamped release with all eleven assets; prunes to the
    latest 5.
 
 # Attribution
@@ -315,6 +398,8 @@ flowchart LR
 Geo data: [IP2Location LITE](https://lite.ip2location.com) DB11 +
 [MaxMind GeoLite2](https://dev.maxmind.com/geoip/geolite2-free-geolocation-data).
 Proxy data: IP2Location LITE PX12.
+Geofeed data: RIR bulk WHOIS (RIPE, APNIC, AFRINIC, LACNIC) +
+operator-published [RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feeds.
 
 # License
 

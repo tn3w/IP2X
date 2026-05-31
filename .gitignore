@@ -227,7 +227,10 @@ target
 
 # Generated files
 *.bin
+*.csv
 *.tsv
 *.netset
 *.buckets
 out/
+# Geofeed discovery cache
+.cache/

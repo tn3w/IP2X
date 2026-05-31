@@ -28,13 +28,17 @@ jobs:
             ~/.cargo/git
             geox/target
             proxyx/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('geox/Cargo.toml', 'proxyx/Cargo.toml') }}
+            geofeedx/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('geox/Cargo.toml', 'proxyx/Cargo.toml', 'geofeedx/Cargo.toml') }}
 
       - run: cargo build --release
         working-directory: geox
 
       - run: cargo build --release
         working-directory: proxyx
+
+      - run: cargo build --release
+        working-directory: geofeedx
 
       - name: Download source databases
         env:
@@ -69,6 +73,14 @@ jobs:
             --px12 IP2PROXY-LITE-PX12.BIN --out proxy.bin
           ./proxyx/target/release/proxyx lookup --db proxy.bin 1.0.19.98
 
+      - name: Build geofeed.bin
+        run: |
+          ./geofeedx/target/release/geofeedx fetch \
+            --cache .cache/rir-bulk --out geofeeds_data.csv
+          ./geofeedx/target/release/geofeedx build \
+            --data geofeeds_data.csv --out geofeed.bin
+          ./geofeedx/target/release/geofeedx lookup --db geofeed.bin 213.21.192.5
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,9 +88,11 @@ jobs:
           TAG="v$(date -u +%Y%m%d-%H%M%S)"
           GEO_SIZE=$(du -h geo.bin | cut -f1)
           PROXY_SIZE=$(du -h proxy.bin | cut -f1)
+          GEOFEED_SIZE=$(du -h geofeed.bin | cut -f1)
           gh release create "$TAG" \
             geo.bin \
             proxy.bin \
+            geofeed.bin \
             proxyx-out/proxy_pub.netset \
             proxyx-out/usage.buckets \
             proxyx-out/threat.buckets \
@@ -96,6 +110,9 @@ jobs:
           **proxyx** ($PROXY_SIZE) IP → (isp, domain) mmap DB
           - \`proxy.bin\`
 
+          **geofeedx** ($GEOFEED_SIZE) IP → (country, region, city, postal, feed) mmap DB
+          - \`geofeed.bin\`   built from RIR bulk geofeed refs + RFC 8805 feeds (v4 + v6)
+
           **proxyx** plain-text IP-intelligence views from IP2PROXY LITE PX12
           - \`proxy_pub.netset\`   CIDR netset of public proxies (proxy_type == PUB)
           - \`usage.buckets\`      IP → usage  (bucketed per value)
@@ -109,6 +126,7 @@ jobs:
           \`\`\`bash
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geo.bin
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy.bin
+          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geofeed.bin
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy_pub.netset
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/usage.buckets
           curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/threat.buckets
