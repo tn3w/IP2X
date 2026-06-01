@@ -361,6 +361,30 @@ python3 proxy_lookup.py 1.0.19.98
 
 `--dir PATH` to point at a directory other than `.`.
 
+# region_country.py
+
+Maps a cloud datacenter region to an ISO 3166-1 alpha-2 country code.
+Covers AWS, GCP and Azure naming (`ap-east-1`, `europe-west3`, `eastasia`,
+…) via a built-in region→country table, then falls back to parsing the
+region string: ISO codes, country names ([`pycountry`](https://pypi.org/project/pycountry/))
+and city names ([`geonamescache`](https://pypi.org/project/geonamescache/)),
+with cardinal/ordinal suffixes (`north`, `west`, trailing digits) stripped.
+
+```python
+from region_country import country
+
+country("ap-east-1")     # HK
+country("europe-west3")  # DE
+country("eastasia")      # HK
+country("us-frankfurt")  # DE
+```
+
+Returns `None` when no country can be inferred.
+
+```bash
+pip install pycountry geonamescache
+```
+
 # Pipeline
 
 ```mermaid
