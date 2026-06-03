@@ -39,6 +39,8 @@ pub fn fetch(cache: &Path, out: &Path) -> io::Result<()> {
     entries.push(Entry { rir: "LACNIC", authority: None, url: LACNIC_GEOFEEDS.to_string() });
     eprintln!("discovered {} feed references", entries.len());
 
+    write_references(out, &entries)?;
+
     let mut index: HashMap<&str, usize> = HashMap::new();
     let mut urls: Vec<String> = Vec::new();
     for e in &entries {
@@ -79,6 +81,30 @@ pub fn fetch(cache: &Path, out: &Path) -> io::Result<()> {
     w.flush()?;
     eprintln!("wrote {rows} rows to {}", out.display());
     Ok(())
+}
+
+fn write_references(out: &Path, entries: &[Entry]) -> io::Result<()> {
+    let path = out.with_file_name("geofeeds.csv");
+    let mut w = BufWriter::new(File::create(&path)?);
+    writeln!(w, "rir,inetnum,url")?;
+    for e in entries {
+        let inetnum = e.authority.map(format_range).unwrap_or_default();
+        writeln!(w, "{},{},{}", e.rir, csv(&inetnum), csv(&e.url))?;
+    }
+    w.flush()?;
+    eprintln!("wrote {} references to {}", entries.len(), path.display());
+    Ok(())
+}
+
+fn format_range(r: Range) -> String {
+    match r {
+        Range::V4(a, b) => {
+            format!("{} - {}", std::net::Ipv4Addr::from(a), std::net::Ipv4Addr::from(b))
+        }
+        Range::V6(a, b) => {
+            format!("{} - {}", std::net::Ipv6Addr::from(a), std::net::Ipv6Addr::from(b))
+        }
+    }
 }
 
 fn parse_feed_row(line: &str) -> Option<(Range, [String; 5])> {
