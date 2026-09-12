@@ -1,0 +1,16 @@
+[project]
+name = "ip2x"
+version = "1.0.0"
+description = "Public IP intel repacked into small mmap databases"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+build = ["numpy>=2"]
+zstd = ["pyzstd>=0.16"]
+region = ["pycountry", "geonamescache"]
+
+[tool.uv]
+package = false

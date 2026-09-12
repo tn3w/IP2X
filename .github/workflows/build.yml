@@ -6,8 +6,8 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'geox/**'
-      - 'proxyx/**'
+      - '*.py'
+      - 'geofeed_map.json'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -19,26 +19,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
-
-      - uses: actions/cache@v4
+      - uses: actions/setup-python@v5
         with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            geox/target
-            proxyx/target
-            geofeedx/target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('geox/Cargo.toml', 'proxyx/Cargo.toml', 'geofeedx/Cargo.toml') }}
+          python-version: '3.14'
 
-      - run: cargo build --release
-        working-directory: geox
-
-      - run: cargo build --release
-        working-directory: proxyx
-
-      - run: cargo build --release
-        working-directory: geofeedx
+      - run: pip install numpy
 
       - name: Download source databases
         env:
@@ -55,91 +40,47 @@ jobs:
           done
           curl -fL -o GeoLite2-City.mmdb https://github.com/P3TERX/GeoLite.mmdb/releases/latest/download/GeoLite2-City.mmdb
 
-      - name: Build geo.bin
+      - name: Build geo.ip2x
         run: |
-          ./geox/target/release/geox build
-          ./geox/target/release/geox lookup 8.8.8.8
-          ./geox/target/release/geox lookup 2606:4700::1
+          python build.py geo
+          python ip2x.py --db geo.ip2x 8.8.8.8 2606:4700::1
 
-      - name: Build proxyx outputs
+      - name: Build proxy.ip2x and the text views
         run: |
-          ./proxyx/target/release/proxyx build \
-            --px12 IP2PROXY-LITE-PX12.BIN --out proxyx-out
-          ls -lh proxyx-out
+          python build.py proxy --views views
+          python ip2x.py --db proxy.ip2x 1.0.19.98
 
-      - name: Build proxy.bin
+      - name: Build geofeed.ip2x
         run: |
-          ./proxyx/target/release/proxyx build-db \
-            --px12 IP2PROXY-LITE-PX12.BIN --out proxy.bin
-          ./proxyx/target/release/proxyx lookup --db proxy.bin 1.0.19.98
-
-      - name: Build geofeed.bin
-        run: |
-          ./geofeedx/target/release/geofeedx fetch \
-            --cache .cache/rir-bulk --out geofeeds_data.csv
-          ./geofeedx/target/release/geofeedx build \
-            --data geofeeds_data.csv --out geofeed.bin
-          ./geofeedx/target/release/geofeedx lookup --db geofeed.bin 213.21.192.5
+          python feeds.py
+          python build.py geofeed
+          python ip2x.py --db geofeed.ip2x 213.21.192.5
 
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="v$(date -u +%Y%m%d-%H%M%S)"
-          GEO_SIZE=$(du -h geo.bin | cut -f1)
-          PROXY_SIZE=$(du -h proxy.bin | cut -f1)
-          GEOFEED_SIZE=$(du -h geofeed.bin | cut -f1)
+          sizes() { du -h "$1" | cut -f1; }
           gh release create "$TAG" \
-            geo.bin \
-            proxy.bin \
-            geofeed.bin \
-            proxyx-out/proxy_pub.netset \
-            proxyx-out/usage.buckets \
-            proxyx-out/threat.buckets \
-            proxyx-out/isp.tsv \
-            proxyx-out/domain.tsv \
-            proxyx-out/last_seen.tsv \
-            proxyx-out/provider.tsv \
-            proxyx-out/fraud_score.tsv \
+            geo.ip2x proxy.ip2x geofeed.ip2x \
+            views/proxy_pub.netset \
+            views/usage.buckets views/threat.buckets \
+            views/isp.tsv views/domain.tsv views/asn.tsv views/as_name.tsv \
+            views/last_seen.tsv views/provider.tsv views/fraud_score.tsv \
             --title "IP2X $(date -u +'%Y-%m-%d %H:%M UTC')" \
             --notes "Automated IP2X database build.
 
-          **geox** ($GEO_SIZE) IP → (lat, lon) at 0.001° precision
-          - \`geo.bin\`
+          **geo.ip2x** ($(sizes geo.ip2x)) IP → (lat, lon) at 0.001°
+          **proxy.ip2x** ($(sizes proxy.ip2x)) IP → proxy type, ISP, domain, usage,
+          ASN, AS name, last seen, threat, provider, fraud score
+          **geofeed.ip2x** ($(sizes geofeed.ip2x)) IP → country, region, city, postal,
+          feed, RIR, provider, tags
 
-          **proxyx** ($PROXY_SIZE) IP → (isp, domain) mmap DB
-          - \`proxy.bin\`
+          Plain-text views of the PX12 data: \`proxy_pub.netset\`,
+          \`usage.buckets\`, \`threat.buckets\` and the \`.tsv\` tables.
 
-          **geofeedx** ($GEOFEED_SIZE) IP → (country, region, city, postal, feed) mmap DB
-          - \`geofeed.bin\`   built from RIR bulk geofeed refs + RFC 8805 feeds (v4 + v6)
+          Read any of the three with \`python ip2x.py --db geo.ip2x 8.8.8.8\`."
 
-          **proxyx** plain-text IP-intelligence views from IP2PROXY LITE PX12
-          - \`proxy_pub.netset\`   CIDR netset of public proxies (proxy_type == PUB)
-          - \`usage.buckets\`      IP → usage  (bucketed per value)
-          - \`threat.buckets\`     IP → threat (bucketed per value)
-          - \`isp.tsv\`            IP → ISP            (dict + ranges)
-          - \`domain.tsv\`         IP → domain         (dict + ranges)
-          - \`last_seen.tsv\`      IP → last-seen days (dict + ranges)
-          - \`provider.tsv\`       IP → VPN provider   (dict + ranges)
-          - \`fraud_score.tsv\`    IP → fraud score    (dict + ranges)
-
-          \`\`\`bash
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geo.bin
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy.bin
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/geofeed.bin
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/proxy_pub.netset
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/usage.buckets
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/threat.buckets
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/isp.tsv
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/domain.tsv
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/last_seen.tsv
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/provider.tsv
-          curl -L -O https://github.com/${{ github.repository }}/releases/download/${TAG}/fraud_score.tsv
-          \`\`\`"
-
-      - name: Prune old releases
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release list --limit 100 --json tagName --jq '.[].tagName' | tail -n +6 \
-            | xargs -rI{} gh release delete {} --yes --cleanup-tag
+          gh release list --limit 100 --json tagName --jq '.[].tagName' \
+            | tail -n +6 | xargs -r -n1 gh release delete --yes --cleanup-tag

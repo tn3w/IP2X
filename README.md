@@ -3,38 +3,45 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/tn3w/IP2X/build.yml?label=build)](https://github.com/tn3w/IP2X/actions)
 [![Release](https://img.shields.io/github/v/release/tn3w/IP2X?label=release)](https://github.com/tn3w/IP2X/releases/latest)
 [![Updated](https://img.shields.io/github/release-date/tn3w/IP2X?label=updated)](https://github.com/tn3w/IP2X/releases/latest)
-[![Artifacts](https://img.shields.io/badge/artifacts-11-blue)](#artifacts)
+[![Artifacts](https://img.shields.io/badge/artifacts-13-blue)](#artifacts)
 [![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2_%2B_RIR-informational)](#attribution)
 [![License](https://img.shields.io/badge/license-Apache_2.0-lightgrey)](LICENSE)
 
-[![geo.bin](https://img.shields.io/badge/geo.bin-42MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geo.bin)
-[![proxy.bin](https://img.shields.io/badge/proxy.bin-12MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin)
-[![geofeed.bin](https://img.shields.io/badge/geofeed.bin-11MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geofeed.bin)
-[![proxy_pub.netset](https://img.shields.io/badge/proxy__pub.netset-31MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset)
-[![usage.buckets](https://img.shields.io/badge/usage.buckets-27MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets)
-[![threat.buckets](https://img.shields.io/badge/threat.buckets-0.5MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets)
-[![isp.tsv](https://img.shields.io/badge/isp.tsv-34MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/isp.tsv)
-[![domain.tsv](https://img.shields.io/badge/domain.tsv-33MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/domain.tsv)
-[![last_seen.tsv](https://img.shields.io/badge/last__seen.tsv-38MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/last_seen.tsv)
-[![provider.tsv](https://img.shields.io/badge/provider.tsv-0.3MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/provider.tsv)
-[![fraud_score.tsv](https://img.shields.io/badge/fraud__score.tsv-37MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv)
+[![geo.ip2x](https://img.shields.io/badge/geo.ip2x-5.1MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geo.ip2x)
+[![proxy.ip2x](https://img.shields.io/badge/proxy.ip2x-4.4MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy.ip2x)
+[![geofeed.ip2x](https://img.shields.io/badge/geofeed.ip2x-1.2MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geofeed.ip2x)
+[![proxy_pub.netset](https://img.shields.io/badge/proxy__pub.netset-40MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset)
+[![usage.buckets](https://img.shields.io/badge/usage.buckets-35MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets)
+[![threat.buckets](https://img.shields.io/badge/threat.buckets-0.7MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets)
+[![isp.tsv](https://img.shields.io/badge/isp.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/isp.tsv)
+[![domain.tsv](https://img.shields.io/badge/domain.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/domain.tsv)
+[![asn.tsv](https://img.shields.io/badge/asn.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/asn.tsv)
+[![as_name.tsv](https://img.shields.io/badge/as__name.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/as_name.tsv)
+[![last_seen.tsv](https://img.shields.io/badge/last__seen.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/last_seen.tsv)
+[![provider.tsv](https://img.shields.io/badge/provider.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/provider.tsv)
+[![fraud_score.tsv](https://img.shields.io/badge/fraud__score.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv)
 
-Public IP intel repacked for fast offline use. Three crates: mmap binary
-DBs (`geo.bin`, `proxy.bin`, `geofeed.bin`) and plain-text proxy views
-(≤ 38 MB each). Sources: IP2Location LITE, MaxMind GeoLite2, RIR geofeeds.
+Public IP intel repacked for fast offline use. Three mmap databases in one
+container format, read by one stdlib-only file. Sources: IP2Location LITE,
+MaxMind GeoLite2, RIR geofeeds.
 
 ```bash
-wget https://github.com/tn3w/IP2X/releases/latest/download/geo.bin
-wget https://github.com/tn3w/IP2X/releases/latest/download/proxy.bin
-wget https://github.com/tn3w/IP2X/releases/latest/download/geofeed.bin
+wget https://github.com/tn3w/IP2X/releases/latest/download/geo.ip2x
+wget https://github.com/tn3w/IP2X/releases/latest/download/proxy.ip2x
+wget https://github.com/tn3w/IP2X/releases/latest/download/geofeed.ip2x
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset
 wget https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets
 wget https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets
 wget https://github.com/tn3w/IP2X/releases/latest/download/isp.tsv
 wget https://github.com/tn3w/IP2X/releases/latest/download/domain.tsv
+wget https://github.com/tn3w/IP2X/releases/latest/download/asn.tsv
+wget https://github.com/tn3w/IP2X/releases/latest/download/as_name.tsv
 wget https://github.com/tn3w/IP2X/releases/latest/download/last_seen.tsv
 wget https://github.com/tn3w/IP2X/releases/latest/download/provider.tsv
 wget https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv
+
+python3 ip2x.py --db geo.ip2x 8.8.8.8
+# 8.8.8.8	{"lat": 37.386, "lon": -122.084}
 ```
 
 Updated daily via GitHub Actions.
@@ -43,379 +50,298 @@ Updated daily via GitHub Actions.
 
 | file | role | size |
 | ---- | ---- | ---: |
-| `geo.bin`            | mmap DB, IP → (lat, lon) at 0.001° | ~42 MB |
-| `proxy.bin`          | mmap DB, IP → (isp, domain)        | ~12 MB |
-| `geofeed.bin`        | mmap DB, IP → (country, region, city, postal, feed) | ~11 MB |
-| `proxy_pub.netset`   | CIDR netset, public proxies (proxy_type == PUB) | ~31 MB |
-| `usage.buckets`      | IP → usage  (bucketed per value)    | ~27 MB |
-| `threat.buckets`     | IP → threat (bucketed per value)    | ~0.5 MB |
-| `isp.tsv`            | IP → ISP            (dict + ranges) | ~34 MB |
-| `domain.tsv`         | IP → domain         (dict + ranges) | ~33 MB |
-| `last_seen.tsv`      | IP → last-seen days (dict + ranges) | ~38 MB |
-| `provider.tsv`       | IP → VPN provider   (dict + ranges) | ~0.3 MB |
-| `fraud_score.tsv`    | IP → fraud score    (dict + ranges) | ~37 MB |
+| `geo.ip2x`     | IP → lat, lon at 0.001°                    | 5.1 MB |
+| `proxy.ip2x`   | IP → proxy type, ISP, domain, usage, ASN, AS name, last seen, threat, provider, fraud score | 4.4 MB |
+| `geofeed.ip2x` | IP → country, region, city, postal, feed, RIR, provider, tags | 1.2 MB |
+| `proxy_pub.netset` | CIDR netset, public proxies (`proxy_type == PUB`) | 40 MB |
+| `usage.buckets`    | IP → usage type (bucketed per value)  | 35 MB |
+| `threat.buckets`   | IP → threat     (bucketed per value)  | 0.7 MB |
+| `isp.tsv` `domain.tsv` `asn.tsv` `as_name.tsv` `last_seen.tsv` `provider.tsv` `fraud_score.tsv` | dict + ranges, one per field | ≤ 47 MB |
 
-# geo.bin
+The `.ip2x` files answer everything the text views do, smaller and faster. The
+views exist to stay greppable and to feed `ipset`/`iptables` directly.
 
-Built by [`geox/`](geox/) from IP2Location DB11 LITE (preferred) +
-MaxMind GeoLite2-City (fallback). Coordinates quantised to 0.001°
-(~111 m, village-scale). Self-describing little-endian, magic `GEO1`.
+> [!TIP]
+> Releases up to the format change shipped `geo.bin`, `proxy.bin` and
+> `geofeed.bin` in the old per-database formats (`GEO1`, `PRX2`, `GFD3`). Those
+> names are no longer published and the old readers cannot read the new format.
+> Migrate: download `geo.ip2x`, `proxy.ip2x`, `geofeed.ip2x` instead and switch
+> to [`ip2x.py`](ip2x.py), which replaces every previous reader.
 
-## Layout
+# Format
 
-24 B header. IPv4 stored as `(base u32) + (delta u24)` blocks of ≤ 256
-rows; IPv6 keyed on the upper 64 bits. Bit-packed point indices into a
-deduped `(lat, lon)` table of i24/1000.
+One container, magic `IP2X\x01`, little-endian, used by all three databases.
 
-| offset | size | field |
-| -----: | ---- | ----- |
-| 0  | 4    | magic `GEO1` |
-| 4  | u8   | version (1) |
-| 5  | u8   | minor (3) |
-| 6  | u8   | idx_bits |
-| 7  | u8   | reserved |
-| 8  | u32  | point_count |
-| 12 | u32  | v4_row_count |
-| 16 | u32  | v6_row_count |
-| 20 | u32  | v4_block_count |
-
-Then: points (`6 B × point_count`), v4 bases (`4 B × blocks`), v4 offsets
-(`4 B × (blocks+1)`), v4 deltas (`3 B × rows`), v4 packed idx,
-v6 keys (`8 B × rows`), v6 packed idx.
-
-Lookup v4: bisect `v4_bases`, bisect deltas inside the matched block,
-read packed idx, decode point. Lookup v6: bisect upper-64 keys, read
-packed idx, decode point. ~0.2 MB resident at open; pages fault on demand.
-
-## Build
-
-```bash
-cd geox
-cargo build --release
-
-./target/release/geox build \
-    --ip2l IP2LOCATION-LITE-DB11.IPV6.BIN \
-    --mmdb GeoLite2-City.mmdb \
-    --out  geo.bin
-
-./target/release/geox lookup --db geo.bin 8.8.8.8
-# 37.386, -122.084
+```
+"IP2X\x01"   5 B magic
+u32          header length
+JSON header
+section bodies, concatenated
 ```
 
-## Python lookup ([`geo_lookup.py`](geo_lookup.py))
+The header names every section and how to read it, so a reader needs no
+per-database knowledge. Each section body:
 
-mmap + numpy `searchsorted` on v4 bases / v6 upper-64 keys; manual
-bit-packed idx + i24 decode. No preload, near-instant startup.
-
-```bash
-python3 geo_lookup.py 8.8.8.8 2001:4860:4860::8888
-# 8.8.8.8                  37.386, -122.084
-# 2001:4860:4860::8888     37.386, -122.084
+```
+u32                    block count
+u32                    key width (4 or 16 for an index, else 0)
+u32                    dictionary length
+u32 × (blocks + 1)     block end offsets
+key × blocks           big-endian, key width bytes   (index only)
+zstd dictionary
+zstd blocks
 ```
 
-`--db PATH` to point at a non-default `geo.bin`.
+Every section trains its own zstd dictionary (≤ 112 KB) against its blocks and
+keeps it only where it pays for itself; blocks are zstd level 19. Small blocks
+against a shared dictionary is what keeps random access cheap without paying the
+usual small-block compression penalty.
 
-# proxy.bin
+## Encodings
 
-Built by [`proxyx/`](proxyx/) from IP2Location IP2PROXY-LITE-PX12.
-Compact mmap DB, IP → (isp, domain). Magic `PRX2`, little-endian, ~12 MB
-for the full PX12 dataset (3.88M v4 rows + 7.8k v6 rows after
-adjacent-equal merge).
+| encoding | block | payload |
+| -------- | ----: | ------- |
+| `index`  | 1024 addresses | gaps from the block key as varints; for IPv6 the top 64 bits are gap-coded and the low 64 follow as varints |
+| `plain`  | 65536 values | one width byte (1/2/4/8), then fixed-width values |
+| `step`   | 65536 values | the same, over differences from the previous value |
+| `text`   | 1024 strings | front-coded: shared-prefix byte, varint fresh length, bytes; restarts each block |
 
-## Layout
+`plain` and `step` are written both ways and the smaller is kept.
 
-36 B header. Strings interned once into a single offset/blob table;
-(isp_idx, dom_idx) pairs interned into a pair table, freq-sorted so hot
-pairs get tiny indices. IPv4 stored as fixed-size blocks of 256 rows
-with per-block variable bit-width deltas and pair-index packing; IPv6
-keyed on the upper 64 bits.
+## Shape
 
-| offset | size | field |
-| -----: | ---- | ----- |
-| 0  | 4   | magic `PRX2` |
-| 4  | u8  | version (2) |
-| 5  | u8  | block_shift (8 → 256 rows) |
-| 6  | u8  | v6_bits |
-| 7  | u8  | reserved |
-| 8  | u32 | pair_count |
-| 12 | u32 | str_count |
-| 16 | u32 | v4_row_count |
-| 20 | u32 | v6_row_count |
-| 24 | u32 | v4_block_count |
-| 28 | u32 | v4_delta_blob_len |
-| 32 | u32 | v4_idx_blob_len |
+All three databases have the same shape, which is why one reader covers them:
 
-Then: pairs (`6 B × n_pairs`, u24 isp_idx + u24 dom_idx), str offsets
-(`4 B × (n_strs+1)`), str blob, v4 bases (`4 B × blocks`), per-block
-`dbits` / `ibits` (`1 B × blocks` each), v4 delta byte-offsets and
-idx byte-offsets (`4 B × (blocks+1)` each), v4 delta blob + 8 B pad,
-v4 idx blob + 8 B pad, v6 keys (`8 B × rows`), v6 packed idx + 8 B pad.
+| section | holds |
+| ------- | ----- |
+| `spine.v4` `spine.v6` | sorted range starts |
+| `row.v4` `row.v6`     | record id per range, 0 where nothing is known |
+| `field.<name>`        | one column per field, over the record table |
+| `strings`             | the shared pool every text field indexes into |
 
-Avg per-block widths on full PX12: ~14 delta-bits, ~8 idx-bits.
+Records are deduplicated and numbered **by first appearance**, so the ids inside
+one block stay close together and zstd sees them repeat. Frequency ordering was
+measured 4% worse.
 
-Lookup v4: bisect `bases4`, bisect deltas in the matched block at that
-block's `dbits`, read packed pair-idx at that block's `ibits`, resolve
-pair → (isp, domain). Lookup v6: bisect upper-64 keys, read packed idx,
-resolve pair. Native lookup ~170 ns v4 / ~80 ns v6; load ~10 µs;
-resident struct 208 B (mmap shared, paged on demand).
+Lookup: bisect the block keys, decode that block, bisect it, read the record id,
+read each field column at `id - 1`.
 
-## Build
+# geo.ip2x
 
-```bash
-cd proxyx
-cargo build --release
+IP2Location DB11 LITE where it holds a point, MaxMind GeoLite2-City where DB11
+has `0,0`. Coordinates quantised to 0.001° into a deduplicated point table.
 
-./target/release/proxyx build-db \
-    --px12 IP2PROXY-LITE-PX12.BIN \
-    --out  proxy.bin
+Boundaries are snapped to **/24 for IPv4 and /40 for IPv6**, each block taking
+the point that covers most of it. The IPv6 snap is what makes the file small:
+IP2Location LITE's v6 table is per-/48 customer churn, 3.0M boundaries
+alternating between points in the same metro:
 
-./target/release/proxyx lookup --db proxy.bin 1.0.19.98
-# isp     I2TS Inc.
-# domain  mediaindex.co.jp
+```
+2001:9e8:d366::  (51.925, 9.108)
+2001:9e8:d367::  (52.007, 8.546)
+2001:9e8:d368::  (51.925, 9.108)
 ```
 
-## Python lookup ([`proxy_db_lookup.py`](proxy_db_lookup.py))
+Snapping to /40 cuts 3.0M v6 boundaries to 144k and 3.9 MB off the file, for
+detail the source cannot support.
 
-mmap + numpy `searchsorted` on bases4 / v6 upper-64 keys; manual
-bit-packed delta + idx decode against per-block widths. No preload,
-near-instant startup.
+| | |
+| --- | --- |
+| v4 boundaries | 2,938,618 |
+| v6 boundaries | 144,153 |
+| distinct points | 87,555 |
 
-```bash
-python3 proxy_db_lookup.py 1.0.19.98 2001:dead::1
-# 1.0.19.98     isp=I2TS Inc.            domain=mediaindex.co.jp
-# 2001:dead::1  isp=FDCservers.net LLC   domain=fdcservers.net
-```
+Without snapping (`--v4-block 0 --v6-block 0`) the same builder writes 8.8 MB.
 
-`--db PATH` to point at a non-default `proxy.bin`.
+# proxy.ip2x
 
-# geofeed.bin
-
-Built by [`geofeedx/`](geofeedx/) from operator-published geolocation.
-The builder downloads the RIR bulk WHOIS dumps (RIPE, APNIC, AFRINIC),
-extracts every `geofeed:` / `remarks: Geofeed` reference, fetches each
-referenced [RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feed
-concurrently, and merges the LACNIC consolidated feed. Self-describing
-little-endian, magic `GFD3`, IPv4 + IPv6.
-
-Feed rows are accepted only when contained in the authority range of the
-RIR object that referenced them. Each row contributes
-`(country, region, city, postal, feed, rir)`; `feed` is the source URL.
-
-## Layout
-
-28 B header. `(country, region, city, postal, feed, rir)` tuples are
-interned into a freq-sorted record table (hot records get small ids), and
-every string is interned once into an offset/blob table. IPv4 and IPv6
-ranges are each flattened into a sorted breakpoint array (`start → record
-id`); adjacent-equal ids are merged. Id and field-index widths are the
-minimum bytes the cardinalities require (typically 2 B each).
-
-| offset | size | field |
-| -----: | ---- | ----- |
-| 0  | 4   | magic `GFD3` |
-| 4  | u8  | version (3) |
-| 5  | u8  | id_width |
-| 6  | u8  | field_count (6) |
-| 7  | u8  | field_width |
-| 8  | u32 | v4_break_count |
-| 12 | u32 | v6_break_count |
-| 16 | u32 | record_count |
-| 20 | u32 | string_count |
-| 24 | u32 | blob_len |
-
-Then: v4 starts (`4 B × v4_breaks`), v4 ids (`id_width × v4_breaks`),
-v6 starts (`16 B × v6_breaks`), v6 ids (`id_width × v6_breaks`),
-records (`field_count × field_width × records`), string offsets
-(`4 B × (strings+1)`), string blob.
-
-Lookup: bisect the matching family's starts, read the packed record id,
-resolve the tuple. Native load ~6 µs (mmap, ~0 resident); ~120 ns/lookup
-over ~1.2 M v4 breakpoints.
-
-## Build
+IP2Location LITE PX12, all ten fields kept, adjacent rows with identical values
+merged. 5.27M v4 and 5.4k v6 boundaries over 100k distinct records.
 
 ```bash
-cd geofeedx
-cargo build --release
-
-./target/release/geofeedx fetch --out geofeeds_data.csv
-./target/release/geofeedx build --data geofeeds_data.csv --out geofeed.bin
-
-./target/release/geofeedx lookup --db geofeed.bin 213.21.192.5
-# country  LV
-# region   LV-RIX
-# city     Riga
-# ...
+python3 ip2x.py --db proxy.ip2x 1.0.19.98
+```
+```json
+{"proxy_type": "PUB", "isp": "I2TS Inc.", "domain": "mediaindex.co.jp",
+ "usage_type": "DCH", "asn": null, "as_name": null, "last_seen": 30,
+ "threat": null, "provider": null, "fraud_score": 80}
 ```
 
-`fetch` caches the RIR bulk dumps under `.cache/rir-bulk` and re-downloads
-only what is missing. `geofeeds_data.csv` is the intermediate
-`cidr,country,region,city,postal,feed,rir` join, regenerated on each fetch.
+Country, region and city are omitted - `geo.ip2x` and `geofeed.ip2x` cover
+location.
 
-## Python lookup ([`geofeed_lookup.py`](geofeed_lookup.py))
+# geofeed.ip2x
 
-mmap + `bisect` on the v4 / v6 start arrays; variable-width record and
-field decode. No preload, near-instant startup. v4 + v6 in one call.
+`feeds.py` downloads the RIR bulk WHOIS dumps (RIPE, APNIC, AFRINIC), extracts
+every `geofeed:` / `remarks: Geofeed` reference, fetches each referenced
+[RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feed concurrently and merges
+the LACNIC consolidated feed. A feed row is kept only when it falls inside the
+authority range of the object that referenced it.
+
+Feeds nest and overlap, so ranges are flattened into breakpoints before writing.
+`provider` and `tags` come from [`geofeed_map.json`](geofeed_map.json), which
+maps a feed URL to its operator and network type (`isp`, `hosting`,
+`datacenter`, `enterprise`, `mobile`, `cloud`, …).
 
 ```bash
-python3 geofeed_lookup.py 213.21.192.5 2001:ad0::1
+python3 feeds.py                        # → geofeeds_data.csv, geofeeds.csv
+python3 build.py geofeed                # → geofeed.ip2x
+python3 ip2x.py --db geofeed.ip2x 213.21.192.5
 ```
 
-`--db PATH` to point at a non-default `geofeed.bin`.
+`feeds.py` caches the bulk dumps under `.cache/rir-bulk` and re-downloads only
+what is missing. Each feed is parsed once however many registry objects point at
+it, which is what keeps the join to seconds rather than an hour.
 
-# proxyx outputs
+| | |
+| --- | --- |
+| references discovered | 86,860 over 5,251 unique feeds |
+| feeds reached | 4,488 |
+| feed rows kept | 581,292 |
+| v4 / v6 breakpoints | 364,849 / 258,979 |
+| records | 60,578 |
 
-Built by [`proxyx/`](proxyx/) from IP2Location IP2PROXY-LITE-PX12.
-All files plain UTF-8, `#`-prefixed metadata header, ≤ 38 MB each
-(no compression, no splitting). Empty source fields dropped; adjacent
-ranges with identical value merged.
+Where two operators publish overlapping ranges, the most specific wins; equal
+ranges that disagree are resolved in feed order.
 
-Three shapes used across the files:
+# Text views
+
+Plain UTF-8, `#`-prefixed metadata header, no compression, no splitting. Empty
+values dropped; adjacent ranges with identical values merged.
 
 ### Netset (`proxy_pub.netset`)
 
-Standard CIDR list, one network per line, single IPs as bare addresses.
-`#`-prefixed metadata header. Drop-in for `ipset hash:net`,
-`iptables`/`nftables`, `ufw`, pfSense and similar.
+One CIDR per line, single IPs bare. Drop-in for `ipset hash:net`, `iptables`,
+`nftables`, `ufw`, pfSense.
 
 ```bash
 ipset create proxy_pub hash:net family inet
 awk '!/^#/ && /\./' proxy_pub.netset | xargs -n1 ipset add proxy_pub
 ```
 
-### Bucketed form (`usage.buckets`, `threat.buckets`)
+### Bucketed (`usage.buckets`, `threat.buckets`)
 
 ```
 [VALUE]
 <start_ip>[+<span>]
-<start_ip>[+<span>]
 [NEXT_VALUE]
-...
 ```
 
-For low-cardinality categorical fields. IP → value = scan sections,
-bisect ranges. The string is written once per category, not per range.
+For low-cardinality fields: the string is written once per category, not per
+range.
 
-### Dict + ranges form (`*.tsv`)
+### Dict + ranges (`*.tsv`)
 
 ```
 #dict
-<idx>\t<value>
 <idx>\t<value>
 #data
 <start_ip>[+<span>]\t<idx>
 ```
 
-`#dict` is frequency-sorted (smaller idx = more common, so popular
-values cost 1-2 chars per row). `#data` is v4 block then v6, ascending.
-Lookup: load the dict into a `Vec<String>`, bisect `#data` by `start_ip`,
-index into the dict.
+`#dict` is frequency-sorted, so common values cost 1-2 characters per row.
+`#data` is the v4 block then v6, ascending. Lookup: load the dict, bisect
+`#data` by start_ip.
 
-## Field source
+These are deliberately **not** minified. The start-IP column is 75-93% of each
+file and delta-coding it would cut them to ~21%, but that breaks the bisect and
+the `grep` those formats exist for - and `proxy.ip2x` already answers the same
+questions in 4.4 MB.
 
-PX12 columns kept by `proxyx` (others ignored):
+# Reading
 
-| file | PX12 column |
-| ---- | ----------- |
-| `proxy_pub.netset` | `proxy_type` filtered to `PUB` |
-| `usage.buckets`    | `usage_type` |
-| `threat.buckets`   | `threat` |
-| `isp.tsv`          | `isp` |
-| `domain.tsv`       | `domain` |
-| `last_seen.tsv`    | `last_seen` (days) |
-| `provider.tsv`     | `provider` |
-| `fraud_score.tsv`  | `fraud_score` (0-99) |
+[`ip2x.py`](ip2x.py) reads all three databases and every text view. Standard library only on Python 3.14,
+where `compression.zstd` ships; `pyzstd` below it. mmap, no preload.
 
-Country/region/city/ASN/AS-name are intentionally omitted — `geo.bin`
-already covers location, ASN lives elsewhere.
+```python
+from ip2x import Database
 
-## Build
-
-```bash
-cd proxyx
-cargo build --release
-
-./target/release/proxyx build \
-    --px12 IP2PROXY-LITE-PX12.BIN \
-    --out  out/
-
-ls -lh out/
+database = Database("geo.ip2x")
+database.lookup("8.8.8.8")              # {"lat": 37.386, "lon": -122.084}
+database.lookup("2001:4860:4860::8888") # same, v4 and v6 in one call
+database.lookup("0.0.0.1")              # None
 ```
 
-## Python lookup ([`proxy_lookup.py`](proxy_lookup.py))
+Open 0.3-1.3 ms, 3-23 µs for a cold lookup, 1.0-1.6 µs once the block is cached.
+Decoded blocks are kept in a bounded cache, so a log reading nearby addresses
+pays for one decode.
 
-Parses all 8 outputs once into sorted (start, end, val) arrays; bisects
-per file on query. v4 + v6 in one call. Load ~8 s for the full bundle,
-lookup O(log n) per file thereafter.
+The same file also reads the text views, so a script needs no second parser:
 
-```bash
-python3 proxy_lookup.py 1.0.19.98
-# proxy_pub    True
-# isp          I2TS Inc.
-# domain       mediaindex.co.jp
-# last_seen    30
-# fraud_score  80
-# usage        DCH
-# ...
+```python
+from ip2x import View, open_source
+
+View("proxy_pub.netset").lookup("1.0.19.98")  # "PUB" or None
+View("usage.buckets").lookup("1.0.19.98")     # "DCH"
+View("isp.tsv").lookup("1.0.19.98")           # "I2TS Inc."
+
+open_source("geo.ip2x")                        # Database or View, by suffix
 ```
 
-`--dir PATH` to point at a directory other than `.`.
+```bash
+python3 ip2x.py --db isp.tsv 1.0.19.98
+```
+
+`.netset`, `.buckets` and `.tsv` are picked apart by suffix and held as sorted
+ranges per family; lookup bisects. Unlike the databases a view is parsed whole
+at open (seconds and hundreds of MB for the large tables), so prefer the `.ip2x`
+files for anything hot.
+
+# Building
+
+`numpy` is needed to build; reading never needs it.
+
+```bash
+uv sync --extra build          # or: pip install numpy
+
+python3 build.py geo      --ip2l IP2LOCATION-LITE-DB11.IPV6.BIN \
+                          --mmdb GeoLite2-City.mmdb --out geo.ip2x
+python3 build.py proxy    --px12 IP2PROXY-LITE-PX12.BIN --out proxy.ip2x \
+                          --views views/
+python3 feeds.py && python3 build.py geofeed
+```
+
+| file | does |
+| ---- | ---- |
+| [`ip2x.py`](ip2x.py)       | the reader, and the CLI |
+| [`pack.py`](pack.py)       | the container writer: blocks, dictionaries, header |
+| [`sources.py`](sources.py) | IP2Location `.BIN` and MaxMind `.mmdb` parsing |
+| [`build.py`](build.py)     | the three builders |
+| [`views.py`](views.py)     | the plain-text views |
+| [`feeds.py`](feeds.py)     | RIR geofeed discovery and fetch |
+| [`test_ip2x.py`](test_ip2x.py) | round-trips every section kind |
+
+`build.py geo` takes ~50 s, `build.py proxy` ~25 s and 5 GB peak.
+
+# Pipeline
+
+```mermaid
+flowchart LR
+    D1[IP2Location DB11 LITE] --> G[build.py geo]
+    D2[GeoLite2-City] --> G
+    G --> GB[geo.ip2x]
+    D3[IP2Location PX12 LITE] --> P[build.py proxy]
+    P --> PB[proxy.ip2x]
+    P --> V[netset / buckets / tsv]
+    D4[RIR bulk WHOIS] --> F[feeds.py]
+    D5[RFC 8805 feeds + LACNIC] --> F
+    F --> FB[build.py geofeed --> geofeed.ip2x]
+    D6[geofeed_map.json] --> FB
+```
 
 # region_country.py
 
-Maps a cloud datacenter region to an ISO 3166-1 alpha-2 country code.
-Covers AWS, GCP and Azure naming (`ap-east-1`, `europe-west3`, `eastasia`,
-…) via a built-in region→country table, then falls back to parsing the
-region string: ISO codes, country names ([`pycountry`](https://pypi.org/project/pycountry/))
-and city names ([`geonamescache`](https://pypi.org/project/geonamescache/)),
-with cardinal/ordinal suffixes (`north`, `west`, trailing digits) stripped.
+Maps a cloud datacenter region to an ISO 3166-1 alpha-2 country code. Covers AWS,
+GCP and Azure naming via a built-in table, then falls back to parsing the region
+string: ISO codes, country names ([pycountry](https://pypi.org/project/pycountry/))
+and city names ([geonamescache](https://pypi.org/project/geonamescache/)).
 
 ```python
 from region_country import country
 
 country("ap-east-1")     # HK
 country("europe-west3")  # DE
-country("eastasia")      # HK
-country("us-frankfurt")  # DE
 ```
-
-Returns `None` when no country can be inferred.
-
-```bash
-pip install pycountry geonamescache
-```
-
-# Pipeline
-
-```mermaid
-flowchart LR
-    D1[IP2Location DB11 LITE] --> G[geox/]
-    D2[GeoLite2-City] --> G
-    G --> GB[geo.bin]
-    D3[IP2Location PX12 LITE] --> P[proxyx/]
-    P --> PB[proxy.bin]
-    P --> R[proxy_pub.netset]
-    P --> U[usage.buckets]
-    P --> T[threat.buckets]
-    P --> TSV[isp / domain / last_seen / provider / fraud_score .tsv]
-    D4[RIR bulk WHOIS] --> F[geofeedx/]
-    D5[RFC 8805 feeds + LACNIC] --> F
-    F --> FB[geofeed.bin]
-```
-
-# Automated updates
-
-[`.github/workflows/build.yml`](.github/workflows/build.yml):
-
-1. Loops over IP2Location LITE downloads (`DB11LITEBINIPV6`,
-   `PX12LITEBIN`) using `IP2LOCATION_TOKEN`.
-2. Pulls `GeoLite2-City.mmdb` from a public mirror.
-3. Builds `geo.bin` with `geox`, plus `proxy.bin` and the eight
-   plain-text views with `proxyx`.
-4. Runs `geofeedx fetch` (RIR bulk + RFC 8805 feeds) then `geofeedx
-   build` to produce `geofeed.bin`.
-5. Publishes a timestamped release with all eleven assets; prunes to the
-   latest 5.
 
 # Attribution
 
