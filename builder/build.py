@@ -10,9 +10,9 @@ from pathlib import Path
 
 import numpy as np
 
-import views
-from pack import Writer
-from sources import Ip2Location, Mmdb
+from builder import views
+from builder.pack import Writer
+from builder.sources import Ip2Location, Mmdb
 
 SCALE = 1000
 V4_CEILING = (1 << 32) - 1
@@ -334,7 +334,7 @@ def main() -> None:
     feed = sub.add_parser("geofeed")
     feed.add_argument("--data", default="geofeeds_data.csv")
     feed.add_argument("--out", default="geofeed.ip2x")
-    feed.add_argument("--map", default="geofeed_map.json")
+    feed.add_argument("--map", default=str(Path(__file__).with_name("geofeed_map.json")))
     args = parser.parse_args()
     if args.command == "geo":
         build_geo(args.ip2l, args.mmdb, args.out,

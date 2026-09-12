@@ -172,24 +172,24 @@ location.
 
 # geofeed.ip2x
 
-`feeds.py` downloads the RIR bulk WHOIS dumps (RIPE, APNIC, AFRINIC), extracts
+`builder/feeds.py` downloads the RIR bulk WHOIS dumps (RIPE, APNIC, AFRINIC), extracts
 every `geofeed:` / `remarks: Geofeed` reference, fetches each referenced
 [RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feed concurrently and merges
 the LACNIC consolidated feed. A feed row is kept only when it falls inside the
 authority range of the object that referenced it.
 
 Feeds nest and overlap, so ranges are flattened into breakpoints before writing.
-`provider` and `tags` come from [`geofeed_map.json`](geofeed_map.json), which
+`provider` and `tags` come from [`builder/geofeed_map.json`](builder/geofeed_map.json), which
 maps a feed URL to its operator and network type (`isp`, `hosting`,
 `datacenter`, `enterprise`, `mobile`, `cloud`, …).
 
 ```bash
-python3 feeds.py                        # → geofeeds_data.csv, geofeeds.csv
-python3 build.py geofeed                # → geofeed.ip2x
+python3 -m builder.feeds                        # → geofeeds_data.csv, geofeeds.csv
+python3 -m builder.build geofeed                # → geofeed.ip2x
 python3 ip2x.py --db geofeed.ip2x 213.21.192.5
 ```
 
-`feeds.py` caches the bulk dumps under `.cache/rir-bulk` and re-downloads only
+`builder/feeds.py` caches the bulk dumps under `.cache/rir-bulk` and re-downloads only
 what is missing. Each feed is parsed once however many registry objects point at
 it, which is what keeps the join to seconds rather than an hour.
 
@@ -294,42 +294,46 @@ files for anything hot.
 ```bash
 uv sync --extra build          # or: pip install numpy
 
-python3 build.py geo      --ip2l IP2LOCATION-LITE-DB11.IPV6.BIN \
-                          --mmdb GeoLite2-City.mmdb --out geo.ip2x
-python3 build.py proxy    --px12 IP2PROXY-LITE-PX12.BIN --out proxy.ip2x \
-                          --views views/
-python3 feeds.py && python3 build.py geofeed
+python3 -m builder.build geo   --ip2l IP2LOCATION-LITE-DB11.IPV6.BIN \
+                               --mmdb GeoLite2-City.mmdb --out geo.ip2x
+python3 -m builder.build proxy --px12 IP2PROXY-LITE-PX12.BIN --out proxy.ip2x \
+                               --views views/
+python3 -m builder.feeds && python3 -m builder.build geofeed
 ```
+
+Everything that writes lives in [`builder/`](builder/); the reader stays one
+file at the root, so vendoring it means copying [`ip2x.py`](ip2x.py) alone.
 
 | file | does |
 | ---- | ---- |
-| [`ip2x.py`](ip2x.py)       | the reader, and the CLI |
-| [`pack.py`](pack.py)       | the container writer: blocks, dictionaries, header |
-| [`sources.py`](sources.py) | IP2Location `.BIN` and MaxMind `.mmdb` parsing |
-| [`build.py`](build.py)     | the three builders |
-| [`views.py`](views.py)     | the plain-text views |
-| [`feeds.py`](feeds.py)     | RIR geofeed discovery and fetch |
-| [`test_ip2x.py`](test_ip2x.py) | round-trips every section kind |
+| [`ip2x.py`](ip2x.py) | the reader, the views, and the CLI |
+| [`builder/pack.py`](builder/pack.py) | the container writer: blocks, dicts, header |
+| [`builder/sources.py`](builder/sources.py) | IP2Location `.BIN` and MaxMind `.mmdb` parsing |
+| [`builder/build.py`](builder/build.py) | the three builders |
+| [`builder/views.py`](builder/views.py) | the plain-text views |
+| [`builder/feeds.py`](builder/feeds.py) | RIR geofeed discovery and fetch |
+| [`builder/region_country.py`](builder/region_country.py) | cloud region → country code |
+| [`test_ip2x.py`](test_ip2x.py) | round-trips every section kind and view |
 
-`build.py geo` takes ~50 s, `build.py proxy` ~25 s and 5 GB peak.
+`builder.build geo` takes ~50 s, `builder.build proxy` ~25 s and 5 GB peak.
 
 # Pipeline
 
 ```mermaid
 flowchart LR
-    D1[IP2Location DB11 LITE] --> G[build.py geo]
+    D1[IP2Location DB11 LITE] --> G[builder.build geo]
     D2[GeoLite2-City] --> G
     G --> GB[geo.ip2x]
-    D3[IP2Location PX12 LITE] --> P[build.py proxy]
+    D3[IP2Location PX12 LITE] --> P[builder.build proxy]
     P --> PB[proxy.ip2x]
     P --> V[netset / buckets / tsv]
-    D4[RIR bulk WHOIS] --> F[feeds.py]
+    D4[RIR bulk WHOIS] --> F[builder.feeds]
     D5[RFC 8805 feeds + LACNIC] --> F
-    F --> FB[build.py geofeed --> geofeed.ip2x]
-    D6[geofeed_map.json] --> FB
+    F --> FB[builder.build geofeed --> geofeed.ip2x]
+    D6[builder/geofeed_map.json] --> FB
 ```
 
-# region_country.py
+# builder/region_country.py
 
 Maps a cloud datacenter region to an ISO 3166-1 alpha-2 country code. Covers AWS,
 GCP and Azure naming via a built-in table, then falls back to parsing the region

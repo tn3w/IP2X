@@ -6,7 +6,7 @@ import tempfile
 from pathlib import Path
 
 from ip2x import Database, View
-from pack import Writer
+from builder.pack import Writer
 
 FIELDS = [{"name": "lat", "read": "scaled"}, {"name": "name", "read": "text"},
           {"name": "count", "read": "int"}]

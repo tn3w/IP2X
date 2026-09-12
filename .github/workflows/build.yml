@@ -7,7 +7,8 @@ on:
     branches: [main, master]
     paths:
       - '*.py'
-      - 'geofeed_map.json'
+      - 'builder/*.py'
+      - 'builder/geofeed_map.json'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -42,18 +43,18 @@ jobs:
 
       - name: Build geo.ip2x
         run: |
-          python build.py geo
+          python -m builder.build geo
           python ip2x.py --db geo.ip2x 8.8.8.8 2606:4700::1
 
       - name: Build proxy.ip2x and the text views
         run: |
-          python build.py proxy --views views
+          python -m builder.build proxy --views views
           python ip2x.py --db proxy.ip2x 1.0.19.98
 
       - name: Build geofeed.ip2x
         run: |
-          python feeds.py
-          python build.py geofeed
+          python -m builder.feeds
+          python -m builder.build geofeed
           python ip2x.py --db geofeed.ip2x 213.21.192.5
 
       - name: Create Release
