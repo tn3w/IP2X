@@ -1,7 +1,8 @@
-"""Build geo.ip2x, proxy.ip2x and geofeed.ip2x from their sources."""
+"""Build geo.ip2x, proxy.ip2x, geofeed.ip2x and whois.ip2x from their sources."""
 
 import argparse
 import csv
+import gzip
 import ipaddress
 import json
 import math
@@ -10,7 +11,7 @@ from pathlib import Path
 
 import numpy as np
 
-from builder import views
+from builder import feeds, views
 from builder.pack import Writer
 from builder.sources import Ip2Location, Mmdb
 
@@ -35,6 +36,13 @@ PROXY_FIELDS = [
 FEED_COLUMNS = ("country", "region", "city", "postal", "feed", "rir")
 GEOFEED_FIELDS = [{"name": name, "read": "text"}
                   for name in (*FEED_COLUMNS, "provider", "tags")]
+WHOIS_COLUMNS = ("netname", "org", "descr", "country", "status", "rir")
+WHOIS_FIELDS = [{"name": name, "read": "text"} for name in WHOIS_COLUMNS]
+STUBS = ("IANA-", "NON-RIPE-NCC", "ERX-NETBLOCK", "ARIN-CIDR-BLOCK")
+WIDEST_V4 = (1 << 24) - 1
+WIDEST_V6 = (1 << 104) - 1
+WHOIS_KEYS = ("inetnum", "inet6num", "netname", "org", "descr", "country", "status",
+              "organisation", "org-name")
 
 
 def quantise(value: float) -> int:
@@ -312,6 +320,69 @@ def build_geofeed(data: str, out: str, mapping: str) -> None:
          source="RIR bulk WHOIS + RFC 8805 feeds")
 
 
+def objects(path: Path):
+    """Registry objects one at a time, each key's first value kept."""
+    held: dict[str, str] = {}
+    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if not line.strip():
+                if held:
+                    yield held
+                held = {}
+                continue
+            key, colon, value = line.partition(":")
+            if colon and key in WHOIS_KEYS:
+                held.setdefault(key, value.strip())
+    if held:
+        yield held
+
+
+def placeholder(held: dict[str, str], found: tuple[int, int]) -> bool:
+    """Registries publish stubs over space they do not hold; none names a holder."""
+    widest = WIDEST_V6 if "inet6num" in held else WIDEST_V4
+    netname = held.get("netname", "").upper()
+    return (found[1] - found[0] > widest or netname.startswith(STUBS)
+            or "not allocated to" in held.get("descr", "").lower())
+
+
+def organisations(directory: Path) -> dict[str, str]:
+    paths = [feeds.cached(directory, f"{rir}-org", 0, url)
+             for rir, url in feeds.ORGANISATIONS.items()]
+    paths.append(feeds.cached(directory, "AFRINIC", 0, feeds.BULK["AFRINIC"][0]))
+    return {held["organisation"]: held["org-name"]
+            for path in paths for held in objects(path)
+            if "organisation" in held and "org-name" in held}
+
+
+def build_whois(cache: str, out: str) -> None:
+    directory = Path(cache)
+    directory.mkdir(parents=True, exist_ok=True)
+    named = organisations(directory)
+    identifier: dict[tuple, int] = {}
+    ranges: dict[bool, list[tuple[int, int, int]]] = {False: [], True: []}
+    for rir, urls in feeds.BULK.items():
+        for place, url in enumerate(urls):
+            for held in objects(feeds.cached(directory, rir, place, url)):
+                found = feeds.spans(held.get("inetnum") or held.get("inet6num") or "")
+                if found is None or placeholder(held, found):
+                    continue
+                record = (held.get("netname", ""), named.get(held.get("org", ""), ""),
+                          held.get("descr", ""), held.get("country", "").upper(),
+                          held.get("status", ""), rir)
+                number = identifier.setdefault(record, len(identifier) + 1)
+                ranges["inet6num" in held].append((*found, number))
+    pool = sorted({"", *(value for record in identifier for value in record)})
+    place = {value: at for at, value in enumerate(pool)}
+    families = {}
+    for family, wide, ceiling in ((4, False, V4_CEILING), (6, True, V6_CEILING)):
+        broken = segments(ranges[wide], ceiling)
+        families[family] = ([start for start, _ in broken],
+                            [value for _, value in broken])
+    records = [tuple(place[value] for value in record) for record in identifier]
+    emit(out, "whois", WHOIS_FIELDS, records, families, pool=pool,
+         source="RIPE, APNIC and AFRINIC bulk WHOIS")
+
+
 def normalised(field: str, value: str) -> str:
     return value.strip().upper() if field in ("country", "rir") else value.strip()
 
@@ -335,12 +406,17 @@ def main() -> None:
     feed.add_argument("--data", default="geofeeds_data.csv")
     feed.add_argument("--out", default="geofeed.ip2x")
     feed.add_argument("--map", default=str(Path(__file__).with_name("geofeed_map.json")))
+    whois = sub.add_parser("whois")
+    whois.add_argument("--cache", default=".cache/rir-bulk")
+    whois.add_argument("--out", default="whois.ip2x")
     args = parser.parse_args()
     if args.command == "geo":
         build_geo(args.ip2l, args.mmdb, args.out,
                   {4: args.v4_block, 6: args.v6_block})
     elif args.command == "proxy":
         build_proxy(args.px12, args.out, args.views)
+    elif args.command == "whois":
+        build_whois(args.cache, args.out)
     else:
         build_geofeed(args.data, args.out, args.map)
 

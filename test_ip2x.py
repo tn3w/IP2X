@@ -65,6 +65,54 @@ def check_views(folder: str) -> int:
     return len(wanted)
 
 
+DUMP = """inetnum: 10.0.0.0 - 10.0.255.255
+netname: WIDE-NET
+org: ORG-A
+country: de
+status: ALLOCATED PA
+
+inetnum: 10.0.1.0 - 10.0.1.255
+netname: NARROW-NET
+descr: A customer
+
+inetnum: 8.0.0.0 - 8.255.255.255
+netname: IANA-NETBLOCK-8
+descr: This network range is not allocated to APNIC.
+
+inet6num: 2001:db8::/32
+netname: SIX-NET
+"""
+
+
+def check_whois(folder: str) -> int:
+    import gzip
+
+    from builder import feeds
+    from builder.build import build_whois
+
+    cache = Path(folder) / "bulk"
+    cache.mkdir()
+    for rir, urls in feeds.BULK.items():
+        for place, _ in enumerate(urls):
+            text = DUMP if rir == "RIPE" and place == 0 else ""
+            path = cache / f"{rir.lower()}-{place}.gz"
+            path.write_bytes(gzip.compress(text.encode()))
+    for rir in feeds.ORGANISATIONS:
+        held = b"organisation: ORG-A\norg-name: Example GmbH\n"
+        (cache / f"{rir.lower()}-org-0.gz").write_bytes(gzip.compress(held))
+    path = str(Path(folder) / "whois.ip2x")
+    build_whois(str(cache), path)
+    database = Database(path)
+    wide = database.lookup("10.0.0.1")
+    assert wide["netname"] == "WIDE-NET" and wide["org"] == "Example GmbH", wide
+    assert (wide["country"], wide["status"]) == ("DE", "ALLOCATED PA"), wide
+    assert database.lookup("10.0.1.1")["netname"] == "NARROW-NET"
+    assert database.lookup("10.0.2.1")["netname"] == "WIDE-NET"
+    assert database.lookup("8.8.8.8") is None
+    assert database.lookup("2001:db8::1")["netname"] == "SIX-NET"
+    return 5
+
+
 def main() -> None:
     import ipaddress
     data = sample()
@@ -85,6 +133,7 @@ def main() -> None:
                 assert got == want, f"{text}: {got} != {want}"
                 checked += 1
         checked += check_views(folder)
+        checked += check_whois(folder)
     print(f"ok: {checked} lookups round-tripped")
 
 

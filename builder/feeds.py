@@ -16,6 +16,10 @@ BULK = {
               "https://ftp.apnic.net/apnic/whois/apnic.db.inet6num.gz"),
     "AFRINIC": ("https://ftp.afrinic.net/pub/dbase/afrinic.db.gz",),
 }
+ORGANISATIONS = {
+    "RIPE": "https://ftp.ripe.net/ripe/dbase/split/ripe.db.organisation.gz",
+    "APNIC": "https://ftp.apnic.net/apnic/whois/apnic.db.organisation.gz",
+}
 LACNIC = "https://milacnic.lacnic.net/lacnic/geofeeds"
 THREADS = 64
 TIMEOUT = 25

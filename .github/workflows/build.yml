@@ -57,6 +57,11 @@ jobs:
           python -m builder.build geofeed
           python ip2x.py --db geofeed.ip2x 213.21.192.5
 
+      - name: Build whois.ip2x
+        run: |
+          python -m builder.build whois
+          python ip2x.py --db whois.ip2x 88.198.1.1 2a01:4f8::1
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -64,7 +69,7 @@ jobs:
           TAG="v$(date -u +%Y%m%d-%H%M%S)"
           sizes() { du -h "$1" | cut -f1; }
           gh release create "$TAG" \
-            geo.ip2x proxy.ip2x geofeed.ip2x \
+            geo.ip2x proxy.ip2x geofeed.ip2x whois.ip2x \
             views/proxy_pub.netset \
             views/usage.buckets views/threat.buckets \
             views/isp.tsv views/domain.tsv views/asn.tsv views/as_name.tsv \
@@ -77,11 +82,13 @@ jobs:
           ASN, AS name, last seen, threat, provider, fraud score
           **geofeed.ip2x** ($(sizes geofeed.ip2x)) IP → country, region, city, postal,
           feed, RIR, provider, tags
+          **whois.ip2x** ($(sizes whois.ip2x)) IP → netname, org, descr, country,
+          status, RIR of the narrowest registry object
 
           Plain-text views of the PX12 data: \`proxy_pub.netset\`,
           \`usage.buckets\`, \`threat.buckets\` and the \`.tsv\` tables.
 
-          Read any of the three with \`python ip2x.py --db geo.ip2x 8.8.8.8\`."
+          Read any of the four with \`python ip2x.py --db geo.ip2x 8.8.8.8\`."
 
           gh release list --limit 100 --json tagName --jq '.[].tagName' \
             | tail -n +6 | xargs -r -n1 gh release delete --yes --cleanup-tag

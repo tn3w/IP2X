@@ -3,13 +3,14 @@
 [![Build](https://img.shields.io/github/actions/workflow/status/tn3w/IP2X/build.yml?label=build)](https://github.com/tn3w/IP2X/actions)
 [![Release](https://img.shields.io/github/v/release/tn3w/IP2X?label=release)](https://github.com/tn3w/IP2X/releases/latest)
 [![Updated](https://img.shields.io/github/release-date/tn3w/IP2X?label=updated)](https://github.com/tn3w/IP2X/releases/latest)
-[![Artifacts](https://img.shields.io/badge/artifacts-13-blue)](#artifacts)
+[![Artifacts](https://img.shields.io/badge/artifacts-14-blue)](#artifacts)
 [![Sources](https://img.shields.io/badge/sources-IP2Location_LITE_%2B_GeoLite2_%2B_RIR-informational)](#attribution)
 [![License](https://img.shields.io/badge/license-Apache_2.0-lightgrey)](LICENSE)
 
 [![geo.ip2x](https://img.shields.io/badge/geo.ip2x-5.1MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geo.ip2x)
 [![proxy.ip2x](https://img.shields.io/badge/proxy.ip2x-4.4MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy.ip2x)
 [![geofeed.ip2x](https://img.shields.io/badge/geofeed.ip2x-1.2MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/geofeed.ip2x)
+[![whois.ip2x](https://img.shields.io/badge/whois.ip2x-76MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/whois.ip2x)
 [![proxy_pub.netset](https://img.shields.io/badge/proxy__pub.netset-40MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset)
 [![usage.buckets](https://img.shields.io/badge/usage.buckets-35MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets)
 [![threat.buckets](https://img.shields.io/badge/threat.buckets-0.7MB-blue)](https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets)
@@ -21,14 +22,15 @@
 [![provider.tsv](https://img.shields.io/badge/provider.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/provider.tsv)
 [![fraud_score.tsv](https://img.shields.io/badge/fraud__score.tsv-tsv-blue)](https://github.com/tn3w/IP2X/releases/latest/download/fraud_score.tsv)
 
-Public IP intel repacked for fast offline use. Three mmap databases in one
+Public IP intel repacked for fast offline use. Four mmap databases in one
 container format, read by one stdlib-only file. Sources: IP2Location LITE,
-MaxMind GeoLite2, RIR geofeeds.
+MaxMind GeoLite2, RIR geofeeds and bulk WHOIS.
 
 ```bash
 wget https://github.com/tn3w/IP2X/releases/latest/download/geo.ip2x
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy.ip2x
 wget https://github.com/tn3w/IP2X/releases/latest/download/geofeed.ip2x
+wget https://github.com/tn3w/IP2X/releases/latest/download/whois.ip2x
 wget https://github.com/tn3w/IP2X/releases/latest/download/proxy_pub.netset
 wget https://github.com/tn3w/IP2X/releases/latest/download/usage.buckets
 wget https://github.com/tn3w/IP2X/releases/latest/download/threat.buckets
@@ -53,6 +55,7 @@ Updated daily via GitHub Actions.
 | `geo.ip2x`     | IP → lat, lon at 0.001°                    | 5.1 MB |
 | `proxy.ip2x`   | IP → proxy type, ISP, domain, usage, ASN, AS name, last seen, threat, provider, fraud score | 4.4 MB |
 | `geofeed.ip2x` | IP → country, region, city, postal, feed, RIR, provider, tags | 1.2 MB |
+| `whois.ip2x`   | IP → netname, org, descr, country, status, RIR of the narrowest registry object | 76 MB |
 | `proxy_pub.netset` | CIDR netset, public proxies (`proxy_type == PUB`) | 40 MB |
 | `usage.buckets`    | IP → usage type (bucketed per value)  | 35 MB |
 | `threat.buckets`   | IP → threat     (bucketed per value)  | 0.7 MB |
@@ -70,7 +73,7 @@ views exist to stay greppable and to feed `ipset`/`iptables` directly.
 
 # Format
 
-One container, magic `IP2X\x01`, little-endian, used by all three databases.
+One container, magic `IP2X\x01`, little-endian, used by all four databases.
 
 ```
 "IP2X\x01"   5 B magic
@@ -110,7 +113,7 @@ usual small-block compression penalty.
 
 ## Shape
 
-All three databases have the same shape, which is why one reader covers them:
+All four databases have the same shape, which is why one reader covers them:
 
 | section | holds |
 | ------- | ----- |
@@ -204,6 +207,35 @@ it, which is what keeps the join to seconds rather than an hour.
 Where two operators publish overlapping ranges, the most specific wins; equal
 ranges that disagree are resolved in feed order.
 
+# whois.ip2x
+
+The narrowest RIPE, APNIC or AFRINIC `inetnum`/`inet6num` object over each
+address: customer assignments such as `CLOUD-FSN1` inside Hetzner's allocation,
+far finer than an ASN or an announced prefix.
+
+```bash
+python3 -m builder.build whois                  # reuses builder.feeds' dump cache
+python3 ip2x.py --db whois.ip2x 2a01:4f8:c17::1
+```
+```json
+{"netname": "CLOUD-FSN1", "org": "Hetzner Online GmbH", "descr": null,
+ "country": "DE", "status": "ASSIGNED PA", "rir": "RIPE"}
+```
+
+| field | from |
+| ----- | ---- |
+| `netname`, `descr`, `country`, `status` | the object's first value of each key |
+| `org` | `org-name` of the object's `organisation` |
+| `rir` | the dump it came from |
+
+- **Nested** objects: the narrowest wins, the covering one answers around it.
+- **Stubs dropped:** objects wider than /8 (v4) or /24 (v6), `IANA-*`,
+  `NON-RIPE-NCC*`, `ERX-NETBLOCK*`, `ARIN-CIDR-BLOCK*` netnames and "not allocated
+  to" descriptions name no holder.
+- ARIN and LACNIC publish no bulk holder data, so their space answers `None`.
+
+About 4.0M records over 6.5M v4 and 1.4M v6 boundaries.
+
 # Text views
 
 Plain UTF-8, `#`-prefixed metadata header, no compression, no splitting. Empty
@@ -250,7 +282,7 @@ questions in 4.4 MB.
 
 # Reading
 
-[`ip2x.py`](ip2x.py) reads all three databases and every text view. Standard library only on Python 3.14,
+[`ip2x.py`](ip2x.py) reads all four databases and every text view. Standard library only on Python 3.14,
 where `compression.zstd` ships; `pyzstd` below it. mmap, no preload.
 
 ```python
@@ -299,6 +331,7 @@ python3 -m builder.build geo   --ip2l IP2LOCATION-LITE-DB11.IPV6.BIN \
 python3 -m builder.build proxy --px12 IP2PROXY-LITE-PX12.BIN --out proxy.ip2x \
                                --views views/
 python3 -m builder.feeds && python3 -m builder.build geofeed
+python3 -m builder.build whois
 ```
 
 Everything that writes lives in [`builder/`](builder/); the reader stays one
@@ -309,9 +342,9 @@ file at the root, so vendoring it means copying [`ip2x.py`](ip2x.py) alone.
 | [`ip2x.py`](ip2x.py) | the reader, the views, and the CLI |
 | [`builder/pack.py`](builder/pack.py) | the container writer: blocks, dicts, header |
 | [`builder/sources.py`](builder/sources.py) | IP2Location `.BIN` and MaxMind `.mmdb` parsing |
-| [`builder/build.py`](builder/build.py) | the three builders |
+| [`builder/build.py`](builder/build.py) | the four builders |
 | [`builder/views.py`](builder/views.py) | the plain-text views |
-| [`builder/feeds.py`](builder/feeds.py) | RIR geofeed discovery and fetch |
+| [`builder/feeds.py`](builder/feeds.py) | RIR geofeed discovery and fetch, bulk dump cache |
 | [`builder/region_country.py`](builder/region_country.py) | cloud region → country code |
 | [`test_ip2x.py`](test_ip2x.py) | round-trips every section kind and view |
 
@@ -330,6 +363,7 @@ flowchart LR
     D4[RIR bulk WHOIS] --> F[builder.feeds]
     D5[RFC 8805 feeds + LACNIC] --> F
     F --> FB[builder.build geofeed --> geofeed.ip2x]
+    D4 --> W[builder.build whois] --> WB[whois.ip2x]
     D6[builder/geofeed_map.json] --> FB
 ```
 
@@ -354,6 +388,7 @@ Geo data: [IP2Location LITE](https://lite.ip2location.com) DB11 +
 Proxy data: IP2Location LITE PX12.
 Geofeed data: RIR bulk WHOIS (RIPE, APNIC, AFRINIC, LACNIC) +
 operator-published [RFC 8805](https://www.rfc-editor.org/rfc/rfc8805) feeds.
+WHOIS data: RIPE NCC, APNIC and AFRINIC bulk dumps, under each registry's terms.
 
 # License
 
