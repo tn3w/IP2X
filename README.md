@@ -46,7 +46,7 @@ python3 ip2x.py --db geo.ip2x 8.8.8.8
 # 8.8.8.8	{"lat": 37.386, "lon": -122.084}
 ```
 
-Updated daily via GitHub Actions.
+Updated weekly via GitHub Actions.
 
 ## Artifacts
 
