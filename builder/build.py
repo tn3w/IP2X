@@ -1,8 +1,7 @@
-"""Build geo.ip2x, proxy.ip2x, geofeed.ip2x and whois.ip2x from their sources."""
+"""Build every IP2X database from its sources."""
 
 import argparse
 import csv
-import gzip
 import ipaddress
 import json
 import math
@@ -11,7 +10,7 @@ from pathlib import Path
 
 import numpy as np
 
-from builder import feeds, views
+from builder import feeds, intel, views
 from builder.pack import Writer
 from builder.sources import Ip2Location, Mmdb
 
@@ -43,6 +42,45 @@ WIDEST_V4 = (1 << 24) - 1
 WIDEST_V6 = (1 << 104) - 1
 WHOIS_KEYS = ("inetnum", "inet6num", "netname", "org", "descr", "country", "status",
               "organisation", "org-name")
+SHOWN = 8
+MERGES = {"join": lambda values: ",".join(map(str, values[:SHOWN])),
+          "first": lambda values: values[0], "min": min, "max": max, "count": len}
+
+
+def text(name: str, merge: str = "join", default: str = "") -> dict:
+    return {"name": name, "read": "text", "merge": merge, "default": default}
+
+
+def number(name: str, merge: str = "max") -> dict:
+    return {"name": name, "read": "int", "merge": merge, "default": 0}
+
+
+TABLES = {
+    "bots": ([text("bot"), text("kind"), text("evidence", default="published")],
+             lambda args: intel.listed("bots"),
+             "operator-published bot ranges, SANS ISC and ShadowWhisperer scanners"),
+    "proxies": ([text("protocol"), text("port"), text("anonymity"),
+                 number("lists", "count")],
+                lambda args: intel.listed("proxies"), "public proxy lists"),
+    "vpn": ([text("provider"), text("evidence", "min"), number("lists", "count")],
+            lambda args: intel.listed("vpn"), "VPN provider server lists and APIs"),
+    "malware": ([text("family"), text("threat"), text("first_seen", "max"),
+                 text("source")],
+                lambda args: intel.listed("malware"),
+                "Feodo Tracker, ThreatFox, URLhaus, C2IntelFeeds, ViriBack"),
+    "cloud": ([text("provider"), text("service"), text("region"), text("city"),
+               text("country")],
+              lambda args: intel.cloud(), "cloud, CDN and SaaS published ranges"),
+    "tor": ([text("nickname"), text("fingerprint", "first"), text("flags"),
+             text("first_seen", "min"), number("bandwidth"), text("platform", "first"),
+             number("relays", "count")],
+            lambda args: intel.tor(), "Tor Onionoo running relays"),
+    "resolvers": ([text("name", "first"), text("software", "first"), number("dnssec"),
+                   number("reliability")],
+                  lambda args: intel.resolvers(), "public-dns.info"),
+    "irr": ([text("origin"), text("source"), text("maintainer")],
+            lambda args: intel.irr(args.cache), "IRR route and route6 objects"),
+}
 
 
 def quantise(value: float) -> int:
@@ -289,7 +327,7 @@ def parse_cidr(text: str) -> tuple[int, int, bool] | None:
 
 def build_geofeed(data: str, out: str, mapping: str) -> None:
     known = json.loads(Path(mapping).read_text()) if Path(mapping).exists() else {}
-    texts, rows = {""}, []
+    rows = []
     with open(data, newline="", encoding="utf-8", errors="replace") as handle:
         for row in csv.DictReader(handle):
             found = parse_cidr(row.get("cidr") or "")
@@ -300,41 +338,55 @@ def build_geofeed(data: str, out: str, mapping: str) -> None:
             operator = known.get(record[FEED_COLUMNS.index("feed")], {})
             record += (operator.get("provider", ""),
                        ",".join(operator.get("tags", ())))
-            texts.update(record)
             rows.append((*found, record))
-    pool = sorted(texts)
+    packed(out, "geofeed", GEOFEED_FIELDS, rows, "RIR bulk WHOIS + RFC 8805 feeds")
+
+
+def packed(path: str, kind: str, fields: list[dict],
+           rows: list[tuple[int, int, bool, tuple]], source: str) -> int:
+    """Narrowest range wins; records number by first appearance; texts share a pool."""
+    reads = [field["read"] == "text" for field in fields]
+    pool = sorted({"", *(value for *_, record in rows
+                         for value, read in zip(record, reads) if read)})
     place = {value: at for at, value in enumerate(pool)}
     identifier: dict[tuple, int] = {}
-    for _, _, _, record in rows:
-        identifier.setdefault(record, len(identifier) + 1)
-    order = list(identifier)
+    ranges: dict[bool, list[tuple[int, int, int]]] = {False: [], True: []}
+    for low, high, wide, record in rows:
+        number = identifier.setdefault(record, len(identifier) + 1)
+        ranges[wide].append((low, high, number))
     families = {}
     for family, wide, ceiling in ((4, False, V4_CEILING), (6, True, V6_CEILING)):
-        held = [(low, high, identifier[record])
-                for low, high, is_wide, record in rows if is_wide == wide]
-        broken = segments(held, ceiling)
+        broken = segments(ranges[wide], ceiling)
         families[family] = ([start for start, _ in broken],
                             [value for _, value in broken])
-    records = [tuple(place[value] for value in record) for record in order]
-    emit(out, "geofeed", GEOFEED_FIELDS, records, families, pool=pool,
-         source="RIR bulk WHOIS + RFC 8805 feeds")
+    records = [tuple(place[value] if read else value
+                     for value, read in zip(record, reads)) for record in identifier]
+    return emit(path, kind, fields, records, families, pool=pool, source=source)
 
 
-def objects(path: Path):
-    """Registry objects one at a time, each key's first value kept."""
-    held: dict[str, str] = {}
-    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
-        for line in handle:
-            if not line.strip():
-                if held:
-                    yield held
-                held = {}
-                continue
-            key, colon, value = line.partition(":")
-            if colon and key in WHOIS_KEYS:
-                held.setdefault(key, value.strip())
-    if held:
-        yield held
+def folded(value) -> str:
+    return "".join(filter(str.isalnum, str(value).casefold())) or str(value)
+
+
+def reduced(field: dict, values: list):
+    return MERGES[field["merge"]](values) if values else field["default"]
+
+
+def tabled(rows: list[tuple[str, dict]], fields: list[dict]):
+    """Rows naming the same range merge: each field reduces every value it was given."""
+    merged: dict[tuple, dict[str, dict]] = {}
+    for address, record in rows:
+        found = parse_cidr(address)
+        if found is None:
+            continue
+        slot = merged.setdefault(found, {})
+        for name, value in record.items():
+            held = slot.setdefault(name, {})
+            for item in value if isinstance(value, list) else [value]:
+                if item != "":
+                    held.setdefault(folded(item), item)
+    return [(*found, tuple(reduced(field, list(slot.get(field["name"], {}).values()))
+                           for field in fields)) for found, slot in merged.items()]
 
 
 def placeholder(held: dict[str, str], found: tuple[int, int]) -> bool:
@@ -350,7 +402,7 @@ def organisations(directory: Path) -> dict[str, str]:
              for rir, url in feeds.ORGANISATIONS.items()]
     paths.append(feeds.cached(directory, "AFRINIC", 0, feeds.BULK["AFRINIC"][0]))
     return {held["organisation"]: held["org-name"]
-            for path in paths for held in objects(path)
+            for path in paths for held in feeds.objects(path, WHOIS_KEYS)
             if "organisation" in held and "org-name" in held}
 
 
@@ -358,29 +410,19 @@ def build_whois(cache: str, out: str) -> None:
     directory = Path(cache)
     directory.mkdir(parents=True, exist_ok=True)
     named = organisations(directory)
-    identifier: dict[tuple, int] = {}
-    ranges: dict[bool, list[tuple[int, int, int]]] = {False: [], True: []}
+    rows = []
     for rir, urls in feeds.BULK.items():
         for place, url in enumerate(urls):
-            for held in objects(feeds.cached(directory, rir, place, url)):
+            path = feeds.cached(directory, rir, place, url)
+            for held in feeds.objects(path, WHOIS_KEYS):
                 found = feeds.spans(held.get("inetnum") or held.get("inet6num") or "")
                 if found is None or placeholder(held, found):
                     continue
                 record = (held.get("netname", ""), named.get(held.get("org", ""), ""),
                           held.get("descr", ""), held.get("country", "").upper(),
                           held.get("status", ""), rir)
-                number = identifier.setdefault(record, len(identifier) + 1)
-                ranges["inet6num" in held].append((*found, number))
-    pool = sorted({"", *(value for record in identifier for value in record)})
-    place = {value: at for at, value in enumerate(pool)}
-    families = {}
-    for family, wide, ceiling in ((4, False, V4_CEILING), (6, True, V6_CEILING)):
-        broken = segments(ranges[wide], ceiling)
-        families[family] = ([start for start, _ in broken],
-                            [value for _, value in broken])
-    records = [tuple(place[value] for value in record) for record in identifier]
-    emit(out, "whois", WHOIS_FIELDS, records, families, pool=pool,
-         source="RIPE, APNIC and AFRINIC bulk WHOIS")
+                rows.append((*found, "inet6num" in held, record))
+    packed(out, "whois", WHOIS_FIELDS, rows, "RIPE, APNIC and AFRINIC bulk WHOIS")
 
 
 def normalised(field: str, value: str) -> str:
@@ -409,6 +451,10 @@ def main() -> None:
     whois = sub.add_parser("whois")
     whois.add_argument("--cache", default=".cache/rir-bulk")
     whois.add_argument("--out", default="whois.ip2x")
+    for name in TABLES:
+        table = sub.add_parser(name)
+        table.add_argument("--out", default=f"{name}.ip2x")
+        table.add_argument("--cache", default=".cache/rir-bulk")
     args = parser.parse_args()
     if args.command == "geo":
         build_geo(args.ip2l, args.mmdb, args.out,
@@ -417,6 +463,9 @@ def main() -> None:
         build_proxy(args.px12, args.out, args.views)
     elif args.command == "whois":
         build_whois(args.cache, args.out)
+    elif args.command in TABLES:
+        fields, gather, source = TABLES[args.command]
+        packed(args.out, args.command, fields, tabled(gather(args), fields), source)
     else:
         build_geofeed(args.data, args.out, args.map)
 

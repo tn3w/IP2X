@@ -57,6 +57,23 @@ def spans(text: str) -> tuple[int, int] | None:
     return int(network[0]), int(network[-1])
 
 
+def objects(path: Path, keys: tuple[str, ...]):
+    """Registry objects one at a time, each wanted key's first value kept."""
+    held: dict[str, str] = {}
+    with gzip.open(path, "rt", encoding="utf-8", errors="replace") as handle:
+        for line in handle:
+            if not line.strip():
+                if held:
+                    yield held
+                held = {}
+                continue
+            key, colon, value = line.partition(":")
+            if colon and key in keys:
+                held.setdefault(key, value.strip())
+    if held:
+        yield held
+
+
 def referenced(line: str) -> str | None:
     value = line.partition(":")[2].strip()
     if "geofeed" not in value.lower() or "http" not in value:

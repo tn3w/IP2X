@@ -9,6 +9,7 @@ on:
       - '*.py'
       - 'builder/*.py'
       - 'builder/geofeed_map.json'
+      - 'builder/lists.json'
       - '.github/workflows/build.yml'
   workflow_dispatch:
 
@@ -24,7 +25,7 @@ jobs:
         with:
           python-version: '3.14'
 
-      - run: pip install numpy
+      - run: pip install numpy pycountry geonamescache
 
       - name: Download source databases
         env:
@@ -62,6 +63,15 @@ jobs:
           python -m builder.build whois
           python ip2x.py --db whois.ip2x 88.198.1.1 2a01:4f8::1
 
+      - name: Build the list, cloud, Tor, resolver and IRR databases
+        run: |
+          for table in bots proxies vpn malware cloud tor resolvers irr; do
+            python -m builder.build "$table"
+          done
+          python ip2x.py --db bots.ip2x 66.249.66.1
+          python ip2x.py --db cloud.ip2x 3.5.140.1 2603:1000::1
+          python ip2x.py --db irr.ip2x 1.1.1.1 8.8.8.8
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -70,6 +80,8 @@ jobs:
           sizes() { du -h "$1" | cut -f1; }
           gh release create "$TAG" \
             geo.ip2x proxy.ip2x geofeed.ip2x whois.ip2x \
+            bots.ip2x proxies.ip2x vpn.ip2x malware.ip2x cloud.ip2x tor.ip2x \
+            resolvers.ip2x irr.ip2x \
             views/proxy_pub.netset \
             views/usage.buckets views/threat.buckets \
             views/isp.tsv views/domain.tsv views/asn.tsv views/as_name.tsv \
@@ -84,11 +96,23 @@ jobs:
           feed, RIR, provider, tags
           **whois.ip2x** ($(sizes whois.ip2x)) IP → netname, org, descr, country,
           status, RIR of the narrowest registry object
+          **bots.ip2x** ($(sizes bots.ip2x)) IP → bot, kind, evidence
+          **proxies.ip2x** ($(sizes proxies.ip2x)) IP → protocol, port, anonymity, lists
+          **vpn.ip2x** ($(sizes vpn.ip2x)) IP → provider, evidence, lists
+          **malware.ip2x** ($(sizes malware.ip2x)) IP → family, threat, first seen, source
+          **cloud.ip2x** ($(sizes cloud.ip2x)) IP → provider, service, region, city,
+          country
+          **tor.ip2x** ($(sizes tor.ip2x)) IP → nickname, fingerprint, flags, first seen,
+          bandwidth, platform, relays
+          **resolvers.ip2x** ($(sizes resolvers.ip2x)) IP → name, software, DNSSEC,
+          reliability
+          **irr.ip2x** ($(sizes irr.ip2x)) IP → origin, source, maintainer of the
+          narrowest route object
 
           Plain-text views of the PX12 data: \`proxy_pub.netset\`,
           \`usage.buckets\`, \`threat.buckets\` and the \`.tsv\` tables.
 
-          Read any of the four with \`python ip2x.py --db geo.ip2x 8.8.8.8\`."
+          Read any of them with \`python ip2x.py --db geo.ip2x 8.8.8.8\`."
 
           gh release list --limit 100 --json tagName --jq '.[].tagName' \
             | tail -n +6 | xargs -r -n1 gh release delete --yes --cleanup-tag

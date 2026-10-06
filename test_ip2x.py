@@ -113,6 +113,29 @@ def check_whois(folder: str) -> int:
     return 5
 
 
+LISTED = [("10.0.0.0/8", {"bot": "Wide", "lists": 0}),
+          ("10.1.0.0/16", {"bot": "Narrow", "kind": ["a", "b"], "lists": 0}),
+          ("10.1.0.0/16", {"bot": "narrow", "kind": "c", "lists": 1}),
+          ("2001:db8::1", {"bot": "Six", "lists": 2}), ("not an address", {"bot": "x"})]
+
+
+def check_tables(folder: str) -> int:
+    from builder.build import number, packed, tabled, text
+
+    fields = [text("bot"), text("kind", default="none"), number("lists", "count")]
+    path = str(Path(folder) / "table.ip2x")
+    packed(path, "table", fields, tabled(LISTED, fields), "test")
+    database = Database(path)
+    wanted = [("10.2.0.1", {"bot": "Wide", "kind": "none", "lists": 1}),
+              ("10.1.2.3", {"bot": "Narrow", "kind": "a,b,c", "lists": 2}),
+              ("2001:db8::1", {"bot": "Six", "kind": "none", "lists": 1}),
+              ("2001:db8::2", None), ("11.0.0.1", None)]
+    for address, want in wanted:
+        got = database.lookup(address)
+        assert got == want, f"{address}: {got} != {want}"
+    return len(wanted)
+
+
 def main() -> None:
     import ipaddress
     data = sample()
@@ -134,6 +157,7 @@ def main() -> None:
                 checked += 1
         checked += check_views(folder)
         checked += check_whois(folder)
+        checked += check_tables(folder)
     print(f"ok: {checked} lookups round-tripped")
 
 
