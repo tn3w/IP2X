@@ -34,7 +34,7 @@ Public IP intel repacked for fast offline use. Twelve mmap databases in one
 container format, read by one stdlib-only file. Sources: IP2Location LITE,
 MaxMind GeoLite2, RIR geofeeds, bulk WHOIS and IRR dumps, operator-published cloud
 and bot ranges, VPN server lists, Tor Onionoo, public-dns.info, abuse.ch and public
-proxy lists: every list plevin reads that names a bot, proxy, VPN, cloud or malware.
+proxy lists: every list [iplore](https://github.com/tn3w/iplore) reads that names a bot, proxy, VPN, cloud or malware.
 
 ```bash
 wget https://github.com/tn3w/IP2X/releases/latest/download/geo.ip2x
@@ -284,7 +284,7 @@ python3 ip2x.py --db bots.ip2x 66.249.66.1
 
 Declared in [`builder/lists.json`](builder/lists.json), one entry per list:
 a `url`, a `regex` whose named groups fill the record (`ip` is the address, else
-group 1, so plevin's feed regexes copy over unchanged), and constants for the rest.
+group 1, so iplore's feed regexes copy over unchanged), and constants for the rest.
 `within` narrows the text to one JSON key first, `hosts` resolves the hostnames it
 matches and reads their addresses instead, `days` drops rows whose `first_seen` is
 older. Bodies may be gzip or zip.
@@ -298,7 +298,7 @@ older. Bodies may be gzip or zip.
 | -------- | ----- | ------- |
 | `bots`   | 44: Google, Bing, Apple, DuckDuckGo (and DuckAssistBot), Kagi, OpenAI, Anthropic, Perplexity, Mistral, Common Crawl, Amazon, Ahrefs; UptimeRobot, Pingdom, Better Stack, StatusCake, HetrixTools, Checkly, Pulsetic, cron-job.org, WebPageTest, Datadog; GitHub, Stripe, Paddle, Datadog webhooks; Prerender; Modat, Censys, Rapid7, Palo Alto, maltrail mass scanners (named by host), SANS ISC research scanners, ShadowWhisperer scanners | `{"bot": "ClaudeBot", "kind": "ai-crawler", "evidence": "published"}` |
 | `proxies` | 19: proxifly, ProxyScrape, iplocate, mmpx12, monosans, TheSpeedX, hookzof, hideip.me, vakhov, FireHOL socks, SSL and proxies sets | `{"protocol": "socks5,socks4", "port": "58208", "anonymity": "transparent", "lists": 7}` |
-| `vpn` | 40: every VPN list plevin reads: provider APIs (NordVPN, Mullvad, PIA, IVPN, OVPN, AirVPN, Riseup, VPN Gate, resolved Surfshark, hide.me, AzireVPN and Hola servers), provider lists, gluetun-servers, X4BNet, risk-db, ShadowWhisperer | `{"provider": "Hola VPN", "evidence": "published", "lists": 1}` |
+| `vpn` | 40: every VPN list iplore reads: provider APIs (NordVPN, Mullvad, PIA, IVPN, OVPN, AirVPN, Riseup, VPN Gate, resolved Surfshark, hide.me, AzireVPN and Hola servers), provider lists, gluetun-servers, X4BNet, risk-db, ShadowWhisperer | `{"provider": "Hola VPN", "evidence": "published", "lists": 1}` |
 | `malware` | 15: Feodo Tracker (and aggressive), ThreatFox (90 days, and all IOC IPs), C2IntelFeeds, URLhaus online, ViriBack (365 days), TweetFeed, Cobalt Strike servers, ET C2, CyberCrime Tracker, ShadowWhisperer botnet and dropper hosts, Phishing.Database, botvrij.eu | `{"family": "Cobalt Strike", "threat": "botnet_cc", "first_seen": "2026-09-14", "source": "ThreatFox,C2IntelFeeds"}` |
 
 Bot kinds: `search-engine`, `ai-crawler`, `ai-fetcher`, `fetcher`, `advertising`,
